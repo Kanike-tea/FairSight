@@ -15,6 +15,8 @@
 > **Solution Challenge 2026 India — Build with AI**
 > Theme: **Unbiased AI Decision** | Built with Google Technologies
 
+**Live Demo:** [https://fairsight-af293.web.app/](https://fairsight-af293.web.app/)
+
 ---
 
 ## Problem Statement
