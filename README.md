@@ -17,7 +17,7 @@
 
 ---
 
-## 🎯 Problem Statement
+## Problem Statement
 
 Computer programs now make life-changing decisions — who gets a job, a bank loan, or medical
 care. When these systems learn from flawed historical data, they repeat and amplify
@@ -31,7 +31,7 @@ them — before they impact real people.
 
 ---
 
-## 💡 Solution
+## Solution
 
 ```
 Upload CSV  →  Detect Bias  →  Flag Issues  →  AI Report  →  Mitigate & Fix
@@ -47,7 +47,7 @@ Upload CSV  →  Detect Bias  →  Flag Issues  →  AI Report  →  Mitigate & 
 
 ---
 
-## 🛠️ Google Technologies Used
+## Google Technologies Used
 
 | Technology | Role in FairSight |
 |-----------|-------------------|
@@ -64,7 +64,7 @@ Upload CSV  →  Detect Bias  →  Flag Issues  →  AI Report  →  Mitigate & 
 
 ---
 
-## 📐 Fairness Metrics
+## Fairness Metrics
 
 | Metric | Formula | Threshold | Legal Basis |
 |--------|---------|-----------|-------------|
@@ -75,7 +75,7 @@ Upload CSV  →  Detect Bias  →  Flag Issues  →  AI Report  →  Mitigate & 
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Flutter Web/Mobile App
@@ -96,7 +96,7 @@ BigQuery            (audit analytics)
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 FairSight/
@@ -143,7 +143,7 @@ FairSight/
 
 ---
 
-## ⚡ Quick Start (Local — No Cloud Needed)
+## Quick Start (Local — No Cloud Needed)
 
 ### Prerequisites
 
@@ -172,7 +172,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-✅ API live at **http://localhost:8000/api/docs**
+API live at **http://localhost:8000/api/docs**
 
 ### 3. Run the Flutter app
 
@@ -182,7 +182,7 @@ flutter pub get
 flutter run -d chrome
 ```
 
-✅ App opens in Chrome at **http://localhost:PORT**
+App opens in Chrome at **http://localhost:PORT**
 
 ### 4. Run the tests
 
@@ -196,7 +196,7 @@ cd .. && flutter test
 
 ---
 
-## 🔥 Deploy to Google Cloud (Production)
+## Deploy to Google Cloud (Production)
 
 ### Deploy API to Cloud Run
 
@@ -236,7 +236,7 @@ firebase init firestore
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -254,18 +254,18 @@ Full interactive docs: **http://localhost:8000/api/docs**
 
 ---
 
-## 📊 Real-World Validation
+## Real-World Validation
 
 | Dataset | Attribute | Finding | Result |
 |---------|-----------|---------|--------|
-| COMPAS Recidivism (ProPublica) | Race | DI: 0.63 | ❌ Legal violation |
-| Adult Income (UCI) | Gender | Parity gap: 22% | ❌ Significant bias |
-| Healthcare Allocation | Race + SES | DI: 0.66 | ❌ Critical bias |
-| Loan Approval (synthetic) | Race + Gender | DI: 0.69 | ❌ High risk |
+| COMPAS Recidivism (ProPublica) | Race | DI: 0.63 | Legal violation |
+| Adult Income (UCI) | Gender | Parity gap: 22% | Significant bias |
+| Healthcare Allocation | Race + SES | DI: 0.66 | Critical bias |
+| Loan Approval (synthetic) | Race + Gender | DI: 0.69 | High risk |
 
 ---
 
-## 🧪 Test Results
+## Test Results
 
 ```
 backend/tests/test_bias_engine.py  — 23 tests PASSED
@@ -276,7 +276,7 @@ backend/tests/test_api.py          — 14 tests PASSED
 
 ---
 
-## 📜 Compliance Coverage
+## Compliance Coverage
 
 | Framework | How FairSight Addresses It |
 |-----------|---------------------------|
@@ -287,7 +287,7 @@ backend/tests/test_api.py          — 14 tests PASSED
 
 ---
 
-## 🏆 Challenges Overcome
+## Challenges Overcome
 
 | Challenge | How We Solved It |
 |-----------|-----------------|
@@ -299,7 +299,7 @@ backend/tests/test_api.py          — 14 tests PASSED
 
 ---
 
-## 👥 Team
+## Team
 
 **Team FairSight** — Solution Challenge 2026 India
 
@@ -311,7 +311,7 @@ backend/tests/test_api.py          — 14 tests PASSED
 
 ---
 
-## 📄 License
+## License
 
 MIT License — free to use, modify, and deploy.
 
