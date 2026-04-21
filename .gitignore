@@ -1,0 +1,61 @@
+# ── Flutter / Dart ────────────────────────────────────
+*.dart.js
+*.js_
+*.js.deps
+*.js.map
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# ── IDE ───────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Firebase ──────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# ── Python Backend ────────────────────────────────────
+backend/__pycache__/
+backend/*.pyc
+backend/venv/
+backend/.venv/
+backend/.env
+backend/*.egg-info/
+backend/dist/
+backend/build/
+
+# ── Environment & Secrets ─────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# ── Frontend (React) ─────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# ── Misc ──────────────────────────────────────────────
+*.log
+*.tmp
+coverage/
+.coverage
+htmlcov/

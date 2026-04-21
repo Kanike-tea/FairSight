@@ -1,0 +1,40 @@
+name: fairsight
+description: >
+  AI Bias Detection & Fairness Auditing Platform — detects, measures,
+  flags, and fixes hidden bias in AI decision systems.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Google / Firebase
+  firebase_core: ^2.27.0
+  firebase_auth: ^4.17.0
+  cloud_firestore: ^4.15.0
+  firebase_storage: ^11.6.0
+
+  # HTTP & State
+  http: ^1.2.0
+  provider: ^6.1.2
+  go_router: ^13.2.0
+
+  # UI & Charts
+  fl_chart: ^0.67.0
+  file_picker: ^8.0.3
+  google_fonts: ^6.2.1
+
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

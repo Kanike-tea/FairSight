@@ -1,0 +1,30 @@
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "fairsight-af293",
+          "configurations": {
+            "macos": "1:708608892119:ios:28a061e886bf881c832492",
+            "web": "1:708608892119:web:4dae841922c8f637832492",
+            "windows": "1:708608892119:web:e6400a42b460556e832492"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
