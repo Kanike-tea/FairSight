@@ -51,10 +51,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => context.go('/external-audit'),
-            icon: const Icon(Icons.api, color: Colors.white),
+            onPressed: () => context.go('/auto-scan'),
+            icon: const Icon(Icons.auto_fix_high, color: Color(0xFF0D9488)),
             label: const Text(
-              'External Model',
+              'Auto-Detect',
+              style: TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => context.go('/external-audit'),
+            icon: const Icon(Icons.model_training, color: Colors.white),
+            label: const Text(
+              'Audit Model',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -62,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () => context.go('/audit'),
             icon: const Icon(Icons.play_arrow, color: Colors.white),
             label: const Text(
-              'New Audit',
+              'Manual Audit',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -106,22 +114,46 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () => context.go('/audit'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: teal,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 14,
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () => context.go('/auto-scan'),
+                              icon: const Icon(Icons.auto_fix_high, size: 18),
+                              label: const Text(
+                                'Auto-Detect Bias',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: teal,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Run a Bias Audit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(width: 12),
+                            OutlinedButton.icon(
+                              onPressed: () => context.go('/audit'),
+                              icon: const Icon(Icons.tune, size: 18, color: Colors.white70),
+                              label: const Text(
+                                'Manual Audit',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white30),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
@@ -131,11 +163,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   // ── Stats row ─────────────────────────────────────
                   const Row(
                     children: [
-                      _StatCard('< 30s', 'Audit time', teal),
+                      _StatCard('Auto', 'Bias detection', teal),
                       SizedBox(width: 12),
                       _StatCard('4', 'Fairness metrics', Color(0xFF3B82F6)),
                       SizedBox(width: 12),
-                      _StatCard('100%', 'Tests passing', Color(0xFF10B981)),
+                      _StatCard('Model', 'Audit support', Color(0xFF8B5CF6)),
                     ],
                   ),
                   const SizedBox(height: 28),

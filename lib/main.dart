@@ -9,6 +9,7 @@ import 'screens/audit_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/external_audit_screen.dart';
+import 'screens/auto_scan_screen.dart';
 import 'services/audit_service.dart';
 import 'services/auth_service.dart';
 
@@ -42,6 +43,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/external-audit',
       builder: (context, state) => const ExternalAuditScreen(),
+    ),
+    GoRoute(
+      path: '/auto-scan',
+      builder: (context, state) => const AutoScanScreen(),
     ),
   ],
 );
