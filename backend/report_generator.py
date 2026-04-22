@@ -27,7 +27,12 @@ class ReportGenerator:
             import google.generativeai as genai
 
             genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel("gemini-pro")
+            
+            # Try Gemma 4 first, fallback to Gemini 2.5 Flash
+            try:
+                model = genai.GenerativeModel("gemma-4-27b-it")
+            except Exception:
+                model = genai.GenerativeModel("gemini-2.5-flash")
 
             prompt = self._build_prompt(result)
             response = model.generate_content(prompt)

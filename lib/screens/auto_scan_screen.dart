@@ -127,6 +127,10 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
             if (scan != null && scan['status'] == 'success') ...[
               const SizedBox(height: 24),
               _buildSummaryCard(scan),
+              if (scan['ai_interpretation'] != null) ...[
+                const SizedBox(height: 20),
+                _buildAIAssessmentCard(scan['ai_interpretation']),
+              ],
               const SizedBox(height: 20),
               _buildDetectedColumns(scan),
               const SizedBox(height: 20),
@@ -193,7 +197,7 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: _riskColor(risk).withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(color: _riskColor(risk).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
                   child: Text('$risk risk', style: TextStyle(color: _riskColor(risk), fontSize: 12, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(height: 6),
@@ -205,6 +209,92 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAIAssessmentCard(Map<String, dynamic> ai) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.psychology, color: _teal, size: 24),
+              const SizedBox(width: 8),
+              const Text('Gemma 4 AI Assessment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _dark)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: _teal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                child: const Text('Powered by Gemini API', style: TextStyle(fontSize: 10, color: _teal, fontWeight: FontWeight.w600)),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          _aiSection('Interpretation', ai['overall_interpretation'] ?? '', Icons.analytics),
+          const SizedBox(height: 12),
+          _aiSection('Harm Assessment', ai['harm_assessment'] ?? '', Icons.warning_amber),
+          const SizedBox(height: 12),
+          _aiSection('Regulatory Risk', ai['regulatory_risk'] ?? '', Icons.gavel),
+          if (ai['top_recommendation'] != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline, color: Color(0xFF10B981), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Top Recommendation', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46))),
+                        const SizedBox(height: 4),
+                        Text(ai['top_recommendation'], style: const TextStyle(fontSize: 13, color: Color(0xFF064E3B))),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _aiSection(String title, String content, IconData icon) {
+    if (content.isEmpty) return const SizedBox.shrink();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF64748B)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+              const SizedBox(height: 2),
+              Text(content, style: const TextStyle(fontSize: 13, color: _dark, height: 1.4)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -9,9 +9,11 @@ Given a raw dataset, this module:
 
 import re
 import numpy as np
+import os
 import pandas as pd
 from typing import Any
 from bias_engine import BiasEngine
+from gemma_analyzer import GemmaColumnClassifier, GemmaBiasInterpreter
 
 
 # ── Heuristic patterns for column role detection ──────────────────
@@ -116,7 +118,10 @@ class AutoBiasScanner:
     """
 
     def __init__(self):
-        self.classifier = ColumnClassifier()
+        self.heuristic_classifier = ColumnClassifier()
+        self.gemma_classifier = GemmaColumnClassifier()
+        self.gemma_interpreter = GemmaBiasInterpreter()
+        self.use_ai = bool(os.getenv("GOOGLE_API_KEY"))
 
     def scan(
         self,
@@ -136,7 +141,12 @@ class AutoBiasScanner:
             Comprehensive bias scan report with heatmap and rankings.
         """
         # Step 1: Classify columns
-        roles = self.classifier.classify(df)
+        if self.use_ai:
+            # Build sample values for Gemma
+            sample_values = {col: df[col].dropna().head(5).tolist() for col in df.columns}
+            roles = self.gemma_classifier.classify(df.columns.tolist(), sample_values)
+        else:
+            roles = self.heuristic_classifier.classify(df)
 
         # Step 2: Resolve target and prediction columns
         resolved_target = target_col or self._pick_best(
@@ -219,7 +229,7 @@ class AutoBiasScanner:
             1 for r in attribute_results if r["risk_level"] == "critical"
         )
 
-        return {
+        result = {
             "status": "success",
             "summary": {
                 "total_attributes_scanned": len(sensitive_candidates),
@@ -242,6 +252,12 @@ class AutoBiasScanner:
             "attribute_results": attribute_results,
             "bias_heatmap": self._build_heatmap(attribute_results),
         }
+
+        # Step 7: Interpret bias with AI
+        if self.use_ai:
+            result["ai_interpretation"] = self.gemma_interpreter.interpret(result)
+
+        return result
 
     def _analyze_attribute(
         self,
