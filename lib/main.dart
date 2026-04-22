@@ -8,6 +8,7 @@ import 'screens/home_screen.dart';
 import 'screens/audit_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/report_screen.dart';
+import 'screens/external_audit_screen.dart';
 import 'services/audit_service.dart';
 import 'services/auth_service.dart';
 
@@ -37,6 +38,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/report',
       builder: (context, state) => const ReportScreen(),
+    ),
+    GoRoute(
+      path: '/external-audit',
+      builder: (context, state) => const ExternalAuditScreen(),
     ),
   ],
 );

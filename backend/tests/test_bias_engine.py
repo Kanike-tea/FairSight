@@ -17,8 +17,8 @@ def _biased_dataset():
     # Bias: suppress positives for group 0
     mask = (sensitive == 0) & (prediction == 1) & (rng.random(n) < 0.5)
     prediction[mask] = 0
-    data = np.column_stack([sensitive, target, prediction])
-    return data
+    import pandas as pd
+    return pd.DataFrame({"sensitive": sensitive, "target": target, "prediction": prediction})
 
 
 def _fair_dataset():
@@ -28,15 +28,15 @@ def _fair_dataset():
     sensitive = np.array([0] * 500 + [1] * 500)
     target = rng.integers(0, 2, n)
     prediction = target.copy()
-    data = np.column_stack([sensitive, target, prediction])
-    return data
+    import pandas as pd
+    return pd.DataFrame({"sensitive": sensitive, "target": target, "prediction": prediction})
 
 
 # ══════════════════════════════════════════════════════════════════
 class TestBiasEngine:
     def test_returns_metrics_object(self):
         data = _biased_dataset()
-        engine = BiasEngine(data, 0, 1, 2)
+        engine = BiasEngine(data, "sensitive", "target", "prediction")
         result = engine.run_full_audit()
         assert "metrics" in result
         assert "fairness_score" in result
@@ -44,66 +44,66 @@ class TestBiasEngine:
         assert "flags" in result
 
     def test_detects_bias_in_biased_dataset(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         assert engine.disparate_impact() < 0.80
 
     def test_fair_dataset_passes_thresholds(self):
-        engine = BiasEngine(_fair_dataset(), 0, 1, 2)
+        engine = BiasEngine(_fair_dataset(), "sensitive", "target", "prediction")
         assert engine.disparate_impact() >= 0.80
 
     def test_disparate_impact_range(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         di = engine.disparate_impact()
         assert 0.0 <= di <= 1.0
 
     def test_fairness_score_range(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         assert 0 <= engine.fairness_score() <= 100
 
     def test_biased_data_has_low_score(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         assert engine.fairness_score() < 65
 
     def test_flags_generated(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         assert len(engine.generate_flags()) > 0
 
     def test_flags_have_required_fields(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         for flag in engine.generate_flags():
             assert "severity" in flag
             assert "message" in flag
             assert "recommendation" in flag
 
     def test_group_metrics_populated(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         gm = engine.group_metrics()
         assert len(gm) >= 2
 
     def test_group_metrics_have_outcome_rate(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         for group, data in engine.group_metrics().items():
             assert "outcome_rate" in data
 
     def test_risk_level_critical_for_biased(self):
-        engine = BiasEngine(_biased_dataset(), 0, 1, 2)
+        engine = BiasEngine(_biased_dataset(), "sensitive", "target", "prediction")
         assert engine.risk_level() in ("critical", "medium")
 
     def test_multiple_sensitive_attrs(self):
         data = _biased_dataset()
-        engine = BiasEngine(data, 0, 1, 2)
+        engine = BiasEngine(data, "sensitive", "target", "prediction")
         result = engine.run_full_audit()
         assert result is not None
 
     def test_model_accuracy_correct(self):
-        engine = BiasEngine(_fair_dataset(), 0, 1, 2)
+        engine = BiasEngine(_fair_dataset(), "sensitive", "target", "prediction")
         assert engine.accuracy() >= 0.90
 
 
 # ══════════════════════════════════════════════════════════════════
 class TestMitigationEngine:
     def _sample_result(self):
-        return BiasEngine(_biased_dataset(), 0, 1, 2).run_full_audit()
+        return BiasEngine(_biased_dataset(), "sensitive", "target", "prediction").run_full_audit()
 
     def test_projection_improves_score(self):
         engine = MitigationEngine()

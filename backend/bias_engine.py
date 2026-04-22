@@ -9,6 +9,7 @@ Implements four industry-standard metrics:
 """
 
 import numpy as np
+import pandas as pd
 from typing import Any
 
 
@@ -17,15 +18,15 @@ class BiasEngine:
 
     def __init__(
         self,
-        data: np.ndarray,
-        sensitive_col: int,
-        target_col: int,
-        prediction_col: int,
+        data: pd.DataFrame,
+        sensitive_col: str,
+        target_col: str,
+        prediction_col: str,
     ):
         self.data = data
-        self.sensitive = data[:, sensitive_col].astype(int)
-        self.target = data[:, target_col].astype(int)
-        self.prediction = data[:, prediction_col].astype(int)
+        self.sensitive = data[sensitive_col].astype(int)
+        self.target = data[target_col].astype(int)
+        self.prediction = data[prediction_col].astype(int)
 
     # ── Disparate Impact ───────────────────────────────────────────
     def disparate_impact(self) -> float:

@@ -51,6 +51,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           TextButton.icon(
+            onPressed: () => context.go('/external-audit'),
+            icon: const Icon(Icons.api, color: Colors.white),
+            label: const Text(
+              'External Model',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          TextButton.icon(
             onPressed: () => context.go('/audit'),
             icon: const Icon(Icons.play_arrow, color: Colors.white),
             label: const Text(

@@ -7,6 +7,7 @@ Also handles user-uploaded CSV datasets.
 
 import io
 import csv
+import pandas as pd
 import numpy as np
 from typing import Any
 
@@ -70,7 +71,7 @@ class DatasetLoader:
 
     def get_dataset(
         self, dataset_id: str, sensitive_attr: str = "race"
-    ) -> tuple[np.ndarray, int, int, int]:
+    ) -> tuple[pd.DataFrame, str, str, str]:
         """
         Returns (data, sensitive_col, target_col, prediction_col).
 
@@ -96,15 +97,60 @@ class DatasetLoader:
         flip_mask = (sensitive == 0) & (rng.random(n) < 0.30)
         prediction[flip_mask] = 0  # Reduce positive predictions for group 0
 
-        data = np.column_stack([sensitive, target, prediction])
-        return data, 0, 1, 2
+        df = pd.DataFrame({
+            sensitive_attr: sensitive,
+            meta["target"]: target,
+            "prediction": prediction
+        })
+        
+        # Add some random continuous columns for bias scanning demo
+        for col_name in meta.get("sensitive_attrs", []) + ["age", "income", "credit_score"]:
+            if col_name not in df.columns:
+                df[col_name] = rng.normal(size=n)
+                
+        # Make one column heavily biased against the target to demonstrate scanning
+        if "income" in df.columns and "income" != meta["target"]:
+            df["income"] = df[meta["target"]] * 50000 + rng.normal(size=n) * 10000
 
-    def _parse_csv(self, content: bytes) -> tuple[np.ndarray, int, int, int]:
-        reader = csv.reader(io.StringIO(content.decode("utf-8")))
-        rows = list(reader)
-        if len(rows) < 2:
+        return df, sensitive_attr, meta["target"], "prediction"
+
+    def _parse_csv(self, content: bytes) -> tuple[pd.DataFrame, str, str, str]:
+        try:
+            df = pd.read_csv(io.BytesIO(content))
+        except Exception as e:
+            raise ValueError(f"Could not parse CSV: {e}")
+            
+        if len(df) < 1:
             raise ValueError("CSV must have a header and at least one data row")
-        header = rows[0]
-        data = np.array(rows[1:], dtype=float)
-        # Default: col 0 = sensitive, col -2 = target, col -1 = prediction
-        return data, 0, len(header) - 2, len(header) - 1
+            
+        cols = df.columns.tolist()
+        if len(cols) < 3:
+            raise ValueError("CSV must have at least 3 columns")
+            
+        # Default: first col = sensitive, second to last = target, last = prediction
+        return df, cols[0], cols[-2], cols[-1]
+
+    def get_most_biased_columns(self, dataset_id: str) -> list[str]:
+        """Automatically scans the dataset and returns a list of the most heavily biased columns."""
+        if not self.dataset_exists(dataset_id):
+            return []
+            
+        try:
+            df, _, target_col, _ = self.get_dataset(dataset_id)
+        except Exception:
+            return []
+
+        if target_col not in df.columns:
+            return []
+            
+        correlations = {}
+        for col in df.columns:
+            if col in [target_col, "prediction"] or not pd.api.types.is_numeric_dtype(df[col]):
+                continue
+            corr = df[col].corr(df[target_col])
+            if pd.notna(corr):
+                correlations[col] = abs(corr)
+                
+        # Sort by absolute correlation
+        sorted_cols = sorted(correlations.items(), key=lambda x: x[1], reverse=True)
+        return [col for col, _ in sorted_cols[:3]]

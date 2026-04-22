@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Override via `--dart-define=API_URL=https://your-cloud-run-url`
 const String _apiBase = String.fromEnvironment(
   'API_URL',
-  defaultValue: 'http://localhost:8000',
+  defaultValue: 'https://fairsight-api-708608892119.us-central1.run.app',
 );
 
 /// Represents a single bias audit job.

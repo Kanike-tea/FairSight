@@ -360,7 +360,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           sideTitles: SideTitles(showTitles: false),
                         ),
                       ),
-                      gridData: FlGridData(drawVerticalLine: false),
+                      gridData: const FlGridData(drawVerticalLine: false),
                       borderData: FlBorderData(show: false),
                       maxY: 100,
                     ),

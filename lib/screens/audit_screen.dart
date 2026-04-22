@@ -89,7 +89,7 @@ class _AuditScreenState extends State<AuditScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Step 1: Choose dataset ──────────────────────────
-            _SectionHeader(number: '1', title: 'Choose a Dataset'),
+            const _SectionHeader(number: '1', title: 'Choose a Dataset'),
             const SizedBox(height: 12),
             if (svc.datasets.isEmpty)
               const Text(
@@ -119,7 +119,7 @@ class _AuditScreenState extends State<AuditScreen> {
             const SizedBox(height: 28),
 
             // ── Step 2: Sensitive attributes ────────────────────
-            _SectionHeader(number: '2', title: 'Sensitive Attributes'),
+            const _SectionHeader(number: '2', title: 'Sensitive Attributes'),
             const SizedBox(height: 8),
             const Text(
               'Demographic columns to audit for bias.',
@@ -151,7 +151,7 @@ class _AuditScreenState extends State<AuditScreen> {
             const SizedBox(height: 28),
 
             // ── Step 3: Column configuration ────────────────────
-            _SectionHeader(number: '3', title: 'Column Configuration'),
+            const _SectionHeader(number: '3', title: 'Column Configuration'),
             const SizedBox(height: 12),
             _ConfigField(
               label: 'Target (ground truth) column',
