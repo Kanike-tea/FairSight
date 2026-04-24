@@ -107,7 +107,7 @@ class _AuditScreenState extends State<AuditScreen> {
                     label: Text(ds['name'] ?? id),
                     selected: selected,
                     onSelected: (_) => _onDatasetChanged(id),
-                    selectedColor: _teal.withOpacity(0.15),
+                    selectedColor: _teal.withValues(alpha: 0.15),
                     labelStyle: TextStyle(
                       color: selected ? _teal : const Color(0xFF374151),
                       fontWeight:
@@ -143,7 +143,7 @@ class _AuditScreenState extends State<AuditScreen> {
                   onSelected: (v) => setState(() {
                     v ? _selectedAttrs.add(attr) : _selectedAttrs.remove(attr);
                   }),
-                  selectedColor: _teal.withOpacity(0.15),
+                  selectedColor: _teal.withValues(alpha: 0.15),
                   checkmarkColor: _teal,
                 );
               }).toList(),

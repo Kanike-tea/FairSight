@@ -24,18 +24,23 @@ class ReportGenerator:
     def _generate_with_gemini(self, result: dict[str, Any]) -> str:
         """Call Google Gemini API for AI-powered report."""
         try:
-            import google.generativeai as genai
+            from google import genai
 
-            genai.configure(api_key=self.api_key)
+            client = genai.Client(api_key=self.api_key)
+            prompt = self._build_prompt(result)
             
             # Try Gemma 4 first, fallback to Gemini 2.5 Flash
             try:
-                model = genai.GenerativeModel("gemma-4-27b-it")
+                response = client.models.generate_content(
+                    model="gemma-4-27b-it",
+                    contents=prompt
+                )
             except Exception:
-                model = genai.GenerativeModel("gemini-2.5-flash")
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
 
-            prompt = self._build_prompt(result)
-            response = model.generate_content(prompt)
             return response.text
         except Exception as e:
             return self._generate_fallback(result) + f"\n\n[Gemini unavailable: {e}]"

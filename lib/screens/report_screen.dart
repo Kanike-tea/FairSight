@@ -154,9 +154,9 @@ class _ReportScreenState extends State<ReportScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _teal.withOpacity(0.08),
+              color: _teal.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _teal.withOpacity(0.3)),
+              border: Border.all(color: _teal.withValues(alpha: 0.3)),
             ),
             child: const Row(
               children: [

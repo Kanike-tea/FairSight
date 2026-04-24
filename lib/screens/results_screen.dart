@@ -204,7 +204,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: _scoreColor(score).withOpacity(0.2),
+                    color: _scoreColor(score).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -393,9 +393,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: col.withOpacity(0.06),
+              color: col.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: col.withOpacity(0.3)),
+              border: Border.all(color: col.withValues(alpha: 0.3)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,7 +469,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
               onSelected: (v) => setState(
                 () => v ? _mitStrategies.add(s) : _mitStrategies.remove(s),
               ),
-              selectedColor: _teal.withOpacity(0.15),
+              selectedColor: _teal.withValues(alpha: 0.15),
               checkmarkColor: _teal,
             );
           }).toList(),
@@ -499,9 +499,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _teal.withOpacity(0.08),
+              color: _teal.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: _teal.withOpacity(0.3)),
+              border: Border.all(color: _teal.withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -18,6 +18,7 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
   static const _dark = Color(0xFF0A1628);
 
   Future<void> _pickAndScan() async {
+    final svc = context.read<AuditService>();
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
@@ -30,7 +31,6 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
       _scanning = true;
     });
 
-    final svc = context.read<AuditService>();
     await svc.autoScanCSV(result.files.single.bytes!, _fileName!);
 
     if (mounted) setState(() => _scanning = false);
@@ -317,7 +317,7 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
             children: [
               const Text('Sensitive: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
               ...(resolved['sensitive_attributes'] as List? ?? []).map((a) =>
-                Chip(label: Text(a.toString(), style: const TextStyle(fontSize: 11)), backgroundColor: _teal.withOpacity(0.1), padding: EdgeInsets.zero, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                Chip(label: Text(a.toString(), style: const TextStyle(fontSize: 11)), backgroundColor: _teal.withValues(alpha: 0.1), padding: EdgeInsets.zero, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
               ),
             ],
           ),
@@ -373,7 +373,7 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
                 Container(
                   width: 48, height: 28,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(color: _scoreColor(score).withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                  decoration: BoxDecoration(color: _scoreColor(score).withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6)),
                   child: Text('$score', style: TextStyle(fontWeight: FontWeight.bold, color: _scoreColor(score), fontSize: 13)),
                 ),
               ],
@@ -409,7 +409,7 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: _riskColor(risk).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: _riskColor(risk).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                   child: Text('$score/100', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _riskColor(risk))),
                 ),
               ]),

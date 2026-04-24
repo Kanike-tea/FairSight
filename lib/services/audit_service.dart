@@ -100,15 +100,15 @@ class AuditService extends ChangeNotifier {
           sensitiveAttrs: sensitiveAttributes,
         );
 
-        // Persist to Firestore for audit trail
-        await _db.collection('audits').doc(data['job_id']).set({
+        // Persist to Firestore for audit trail (fire-and-forget)
+        _db.collection('audits').doc(data['job_id']).set({
           'job_id': data['job_id'],
           'dataset_id': datasetId,
           'sensitive_attrs': sensitiveAttributes,
           'target_column': targetColumn,
           'status': 'queued',
           'created_at': FieldValue.serverTimestamp(),
-        });
+        }).catchError((_) {});
 
         _pollStatus(data['job_id']);
       } else {
@@ -165,13 +165,13 @@ class AuditService extends ChangeNotifier {
       final data = jsonDecode(res.body);
       currentJob?.result = data;
 
-      // Update Firestore audit record
-      await _db.collection('audits').doc(jobId).update({
+      // Update Firestore audit record (fire-and-forget)
+      _db.collection('audits').doc(jobId).update({
         'status': 'complete',
         'fairness_score': data['fairness_score'],
         'risk_level': data['risk_level'],
         'completed_at': FieldValue.serverTimestamp(),
-      });
+      }).catchError((_) {});
     }
     notifyListeners();
   }
@@ -193,12 +193,12 @@ class AuditService extends ChangeNotifier {
         final data = jsonDecode(res.body);
         reportContent = data['content'];
 
-        // Store report in Firestore
-        await _db.collection('reports').add({
+        // Store report in Firestore (fire-and-forget)
+        _db.collection('reports').add({
           'audit_id': currentJob!.jobId,
           'content': reportContent,
           'created_at': FieldValue.serverTimestamp(),
-        });
+        }).then((_) {}).catchError((_) {});
       }
     } catch (e) {
       error = 'Report generation failed: $e';
@@ -272,8 +272,8 @@ class AuditService extends ChangeNotifier {
           );
         }
 
-        // Persist to Firestore
-        await _db.collection('audits').add({
+        // Persist to Firestore (fire-and-forget)
+        _db.collection('audits').add({
           'type': 'auto_scan',
           'filename': fileName,
           'status': 'complete',
@@ -281,7 +281,7 @@ class AuditService extends ChangeNotifier {
           'risk_level': autoScanResult?['summary']?['overall_risk_level'],
           'biased_attributes': autoScanResult?['summary']?['biased_attributes_found'],
           'created_at': FieldValue.serverTimestamp(),
-        });
+        }).then((_) {}).catchError((_) {});
       } else {
         error = 'Auto-scan failed: ${response.body}';
       }
@@ -391,8 +391,8 @@ class AuditService extends ChangeNotifier {
           );
         }
 
-        // Persist to Firestore
-        await _db.collection('audits').add({
+        // Persist to Firestore (fire-and-forget)
+        _db.collection('audits').add({
           'type': 'model_audit',
           'model_filename': modelFilename,
           'test_data_filename': testDataFilename,
@@ -400,7 +400,7 @@ class AuditService extends ChangeNotifier {
           'overall_score': modelAuditResult?['summary']?['overall_fairness_score'],
           'risk_level': modelAuditResult?['summary']?['overall_risk_level'],
           'created_at': FieldValue.serverTimestamp(),
-        });
+        }).then((_) {}).catchError((_) {});
       } else {
         error = 'Model audit failed: ${response.body}';
       }

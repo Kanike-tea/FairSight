@@ -311,7 +311,7 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
                   label: Text(ds['name'] ?? id),
                   selected: selected,
                   onSelected: (_) => setState(() => _selectedDatasetId = id),
-                  selectedColor: _teal.withOpacity(0.15),
+                  selectedColor: _teal.withValues(alpha: 0.15),
                 );
               }).toList(),
             ),
@@ -417,7 +417,7 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: _riskColor(risk).withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+                    decoration: BoxDecoration(color: _riskColor(risk).withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
                     child: Text('$risk risk', style: TextStyle(color: _riskColor(risk), fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
                 ],

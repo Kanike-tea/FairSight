@@ -12,7 +12,7 @@ import os
 import json
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
 
 
 # ── Gemma 4 model configuration ──────────────────────────────────
@@ -24,21 +24,25 @@ _MODEL_NAME = "gemma-4-27b-it"  # Gemma 4 27B Instruct (via Gemini API)
 _FALLBACK_MODELS = ["gemma-4-4b-it", "gemini-2.5-flash"]
 
 
-def _get_model() -> genai.GenerativeModel:
-    """Get a configured Gemma 4 model instance with fallback."""
+def _generate_content(prompt: str) -> Any:
+    """Generate content using Gemma 4 model with fallback."""
     if not _API_KEY:
         raise RuntimeError("GOOGLE_API_KEY not set")
-    genai.configure(api_key=_API_KEY)
+    client = genai.Client(api_key=_API_KEY)
 
     # Try primary model first, then fallbacks
+    last_error = None
     for model_name in [_MODEL_NAME] + _FALLBACK_MODELS:
         try:
-            model = genai.GenerativeModel(model_name)
-            return model
-        except Exception:
+            return client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
+        except Exception as e:
+            last_error = e
             continue
 
-    raise RuntimeError("No Gemma/Gemini model available")
+    raise RuntimeError(f"No Gemma/Gemini model available. Last error: {last_error}")
 
 
 class GemmaColumnClassifier:
@@ -93,8 +97,7 @@ Respond ONLY with valid JSON in this exact format:
 }}"""
 
         try:
-            model = _get_model()
-            response = model.generate_content(prompt)
+            response = _generate_content(prompt)
             text = response.text.strip()
 
             # Extract JSON from response
@@ -190,8 +193,7 @@ Respond ONLY with valid JSON:
 }}"""
 
         try:
-            model = _get_model()
-            response = model.generate_content(prompt)
+            response = _generate_content(prompt)
             text = response.text.strip()
 
             if "```json" in text:
