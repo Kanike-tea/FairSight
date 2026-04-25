@@ -29,12 +29,40 @@ class ReportGenerator:
             genai.configure(api_key=self.api_key)
             prompt = self._build_prompt(result)
             
-            # Try models in order of speed/availability
-            models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+            # Dynamically discover available models that support content generation
+            try:
+                available_models = [
+                    m.name for m in genai.list_models() 
+                    if 'generateContent' in m.supported_generation_methods
+                ]
+                # Filter for Gemini models and sort (prefer 1.5-flash then 1.5-pro then others)
+                gemini_models = [m for m in available_models if "gemini" in m.lower()]
+                
+                # Manual priority sorting
+                priority = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"]
+                models_to_try = []
+                
+                for p in priority:
+                    matches = [m for m in gemini_models if p in m]
+                    if matches:
+                        models_to_try.append(matches[0])
+                
+                # Add any others we found just in case
+                for m in gemini_models:
+                    if m not in models_to_try:
+                        models_to_try.append(m)
+                
+                if not models_to_try:
+                    models_to_try = ["gemini-1.5-flash", "gemini-pro"] # Absolute fallbacks
+            except Exception:
+                # If listing fails (e.g. permission issues), use a safe hardcoded list
+                models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+
             last_error = None
-            
-            for model_name in models:
+            for model_name in models_to_try:
                 try:
+                    # Some models come back as 'models/gemini-...' from list_models()
+                    # GenerativeModel handles both prefixed and non-prefixed names
                     model = genai.GenerativeModel(model_name)
                     response = model.generate_content(prompt)
                     return response.text
@@ -44,7 +72,7 @@ class ReportGenerator:
 
             if last_error:
                 raise last_error
-            return "No response from Gemini models."
+            return "No response from any available Gemini models."
         except Exception as e:
             error_msg = str(e)
             if "503" in error_msg:
