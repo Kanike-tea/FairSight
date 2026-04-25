@@ -7,7 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Override via `--dart-define=API_URL=https://your-cloud-run-url`
 const String _apiBase = String.fromEnvironment(
   'API_URL',
-  defaultValue: 'https://fairsight-api-708608892119.us-central1.run.app',
+  defaultValue: 'https://fairsight-api-h7k7o52ibq-el.a.run.app', // v1.0.2+3
 );
 
 /// Represents a single bias audit job.
@@ -78,11 +78,12 @@ class AuditService extends ChangeNotifier {
     loading = true;
     error = null;
     reportContent = null;
+    currentJob = null;
     notifyListeners();
 
     try {
       final res = await http.post(
-        Uri.parse('$_apiBase/api/audit'),
+        Uri.parse('$_apiBase/api/audit-sync'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'dataset_id': datasetId,
@@ -92,87 +93,36 @@ class AuditService extends ChangeNotifier {
         }),
       );
 
-      if (res.statusCode == 202) {
+      if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         currentJob = AuditJob(
-          jobId: data['job_id'],
+          jobId: data['job_id'] ?? '',
           datasetId: datasetId,
           sensitiveAttrs: sensitiveAttributes,
+          status: 'complete',
+          progress: 100,
+          result: data,
         );
 
         // Persist to Firestore for audit trail (fire-and-forget)
-        _db.collection('audits').doc(data['job_id']).set({
-          'job_id': data['job_id'],
+        _db.collection('audits').doc(currentJob!.jobId).set({
+          'job_id': currentJob!.jobId,
           'dataset_id': datasetId,
           'sensitive_attrs': sensitiveAttributes,
           'target_column': targetColumn,
-          'status': 'queued',
+          'status': 'complete',
+          'fairness_score': data['fairness_score'],
+          'risk_level': data['risk_level'],
           'created_at': FieldValue.serverTimestamp(),
         }).catchError((_) {});
-
-        _pollStatus(data['job_id']);
       } else {
-        error = 'Failed to start audit: ${res.body}';
+        error = 'Audit failed [$_apiBase]: ${res.statusCode} ${res.body}';
       }
     } catch (e) {
-      error = 'Network error: $e';
+      error = 'Network error [$_apiBase]: $e';
     }
 
     loading = false;
-    notifyListeners();
-  }
-
-  // ── Poll job status ─────────────────────────────────────────────
-  void _pollStatus(String jobId) async {
-    while (true) {
-      await Future.delayed(const Duration(seconds: 2));
-
-      try {
-        final res = await http.get(
-          Uri.parse('$_apiBase/api/audit/$jobId/status'),
-        );
-
-        if (res.statusCode == 200) {
-          final data = jsonDecode(res.body);
-          currentJob?.status = data['status'];
-          currentJob?.progress = data['progress'] ?? 0;
-          notifyListeners();
-
-          if (data['status'] == 'complete') {
-            await _fetchResult(jobId);
-            break;
-          }
-          if (data['status'] == 'failed') {
-            error = data['error'] ?? 'Audit failed';
-            break;
-          }
-        }
-      } catch (e) {
-        error = 'Polling error: $e';
-        break;
-      }
-    }
-    notifyListeners();
-  }
-
-  // ── Fetch completed result ──────────────────────────────────────
-  Future<void> _fetchResult(String jobId) async {
-    final res = await http.get(
-      Uri.parse('$_apiBase/api/audit/$jobId/result'),
-    );
-
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body);
-      currentJob?.result = data;
-
-      // Update Firestore audit record (fire-and-forget)
-      _db.collection('audits').doc(jobId).update({
-        'status': 'complete',
-        'fairness_score': data['fairness_score'],
-        'risk_level': data['risk_level'],
-        'completed_at': FieldValue.serverTimestamp(),
-      }).catchError((_) {});
-    }
     notifyListeners();
   }
 

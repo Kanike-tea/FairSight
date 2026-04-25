@@ -1,6 +1,5 @@
 """Tests for main.py — 14 integration tests covering all API endpoints."""
 
-import pytest
 from fastapi.testclient import TestClient
 import sys
 import os

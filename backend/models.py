@@ -6,7 +6,7 @@ handles persistence and this module serves as a schema reference.
 """
 
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Float, DateTime, Text, JSON, create_engine
+from sqlalchemy import Column, String, Integer, DateTime, Text, JSON, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()

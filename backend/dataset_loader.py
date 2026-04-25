@@ -6,7 +6,6 @@ Also handles user-uploaded CSV datasets.
 """
 
 import io
-import csv
 import pandas as pd
 import numpy as np
 from typing import Any

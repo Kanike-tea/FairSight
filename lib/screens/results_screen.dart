@@ -38,8 +38,8 @@ class _ResultsScreenState extends State<ResultsScreen> {
     final svc = context.watch<AuditService>();
     final job = svc.currentJob;
 
-    // ── Still running ───────────────────────────────────────────
-    if (job == null || job.status != 'complete') {
+    // ── Still running or result not ready ─────────────────────────
+    if (job == null || job.status != 'complete' || job.result == null) {
       return Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
@@ -79,9 +79,17 @@ class _ResultsScreenState extends State<ResultsScreen> {
 
     // ── Results ready ───────────────────────────────────────────
     final result = job.result!;
-    final metrics = result['metrics'] as Map<String, dynamic>? ?? {};
-    final flags = result['flags'] as List<dynamic>? ?? [];
-    final groups = result['group_metrics'] as Map<String, dynamic>? ?? {};
+    
+    // Robust data extraction
+    final metricsRaw = result['metrics'];
+    final metrics = (metricsRaw is Map) ? Map<String, dynamic>.from(metricsRaw) : <String, dynamic>{};
+    
+    final flagsRaw = result['flags'];
+    final flags = (flagsRaw is List) ? List<dynamic>.from(flagsRaw) : <dynamic>[];
+    
+    final groupsRaw = result['group_metrics'];
+    final groups = (groupsRaw is Map) ? Map<String, dynamic>.from(groupsRaw) : <String, dynamic>{};
+    
     final score = result['fairness_score'] as int? ?? 0;
     final risk = result['risk_level'] as String? ?? 'unknown';
 
@@ -90,7 +98,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A1628),
         title: const Text(
-          'Audit Results',
+          'Audit Results v2.1',
           style: TextStyle(color: Colors.white),
         ),
         leading: IconButton(
@@ -280,6 +288,23 @@ class _ResultsScreenState extends State<ResultsScreen> {
       Color(0xFF8B5CF6),
     ];
 
+    // Build labels and values from the flat group_metrics structure
+    // e.g. {"0": {"count": 2530, "outcome_rate": 0.34}, "1": {...}}
+    final labels = <String>[];
+    final values = <double>[];
+
+    for (final entry in groups.entries) {
+      labels.add('Group ${entry.key}');
+      final v = entry.value;
+      if (v is Map) {
+        values.add(((v['outcome_rate'] as num?) ?? 0).toDouble());
+      } else {
+        values.add(0);
+      }
+    }
+
+    if (labels.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -288,88 +313,71 @@ class _ResultsScreenState extends State<ResultsScreen> {
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ...groups.entries.map((attrEntry) {
-          final grpData = attrEntry.value as Map<String, dynamic>;
-          final labels = grpData.keys.toList();
-          final values = grpData.values
-              .map((v) =>
-                  ((v as Map)['outcome_rate'] as num).toDouble())
-              .toList();
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  attrEntry.key,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: SizedBox(
+            height: labels.length * 36.0 + 20,
+            child: BarChart(
+              BarChartData(
+                barGroups: List.generate(
+                  labels.length,
+                  (i) => BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: values[i] * 100,
+                        color: chartColors[i % chartColors.length],
+                        width: 18,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: labels.length * 36.0,
-                  child: BarChart(
-                    BarChartData(
-                      barGroups: List.generate(
-                        labels.length,
-                        (i) => BarChartGroupData(
-                          x: i,
-                          barRods: [
-                            BarChartRodData(
-                              toY: values[i] * 100,
-                              color: chartColors[i % chartColors.length],
-                              width: 18,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ],
-                        ),
-                      ),
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (v, _) => Text(
-                              labels[v.toInt()],
-                              style: const TextStyle(fontSize: 11),
-                            ),
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 36,
-                            getTitlesWidget: (v, _) => Text(
-                              '${v.toInt()}%',
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                          ),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                      ),
-                      gridData: const FlGridData(drawVerticalLine: false),
-                      borderData: FlBorderData(show: false),
-                      maxY: 100,
+                titlesData: FlTitlesData(
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (v, _) {
+                        final idx = v.toInt();
+                        if (idx < 0 || idx >= labels.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Text(
+                          labels[idx],
+                          style: const TextStyle(fontSize: 11),
+                        );
+                      },
                     ),
                   ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      getTitlesWidget: (v, _) => Text(
+                        '${v.toInt()}%',
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                 ),
-              ],
+                gridData: const FlGridData(drawVerticalLine: false),
+                borderData: FlBorderData(show: false),
+                maxY: 100,
+              ),
             ),
-          );
-        }),
+          ),
+        ),
         const SizedBox(height: 8),
       ],
     );

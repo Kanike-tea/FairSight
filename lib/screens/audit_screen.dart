@@ -63,7 +63,29 @@ class _AuditScreenState extends State<AuditScreen> {
       targetColumn: _targetColumn,
       predictionColumn: _predictionColumn,
     );
-    if (mounted) context.go('/results');
+    if (!mounted) return;
+
+    if (svc.error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(svc.error!),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    if (svc.currentJob?.result == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Audit returned no results. Please try again.'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    context.go('/results');
   }
 
   @override

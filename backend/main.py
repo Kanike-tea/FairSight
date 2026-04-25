@@ -208,6 +208,41 @@ def audit_result(job_id: str):
     return j["result"]
 
 
+# ── Synchronous audit (single request-response) ───────────────
+@app.post("/api/audit-sync")
+def audit_sync(req: AuditRequest):
+    """Run a bias audit synchronously and return results immediately."""
+    if not loader.dataset_exists(req.dataset_id):
+        raise HTTPException(404, f"Dataset '{req.dataset_id}' not found")
+
+    try:
+        data, sens_col, tgt_col, pred_col = loader.get_dataset(
+            req.dataset_id,
+            req.sensitive_attributes[0] if req.sensitive_attributes else "race",
+        )
+
+        engine = BiasEngine(data, sens_col, tgt_col, pred_col)
+        result = engine.run_full_audit()
+        result["dataset_id"] = req.dataset_id
+        result["sensitive_attrs"] = req.sensitive_attributes
+
+        # Store as a job so report generation still works
+        job_id = str(uuid.uuid4())
+        jobs[job_id] = {
+            "status": "complete",
+            "progress": 100,
+            "dataset_id": req.dataset_id,
+            "result": result,
+            "created_at": datetime.utcnow().isoformat(),
+            "audit_type": "manual",
+        }
+        result["job_id"] = job_id
+
+        return result
+    except Exception as e:
+        raise HTTPException(500, f"Audit failed: {e}")
+
+
 # ── Mitigation ─────────────────────────────────────────────────
 @app.post("/api/mitigate")
 def mitigate(req: MitigateRequest):

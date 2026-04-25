@@ -24,26 +24,37 @@ class ReportGenerator:
     def _generate_with_gemini(self, result: dict[str, Any]) -> str:
         """Call Google Gemini API for AI-powered report."""
         try:
-            from google import genai
+            import google.generativeai as genai
 
-            client = genai.Client(api_key=self.api_key)
+            genai.configure(api_key=self.api_key)
             prompt = self._build_prompt(result)
             
-            # Try Gemma 4 first, fallback to Gemini 2.5 Flash
-            try:
-                response = client.models.generate_content(
-                    model="gemma-4-27b-it",
-                    contents=prompt
-                )
-            except Exception:
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
+            # Try models in order of speed/availability
+            models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+            last_error = None
+            
+            for model_name in models:
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content(prompt)
+                    return response.text
+                except Exception as e:
+                    last_error = e
+                    continue
 
-            return response.text
+            if last_error:
+                raise last_error
+            return "No response from Gemini models."
         except Exception as e:
-            return self._generate_fallback(result) + f"\n\n[Gemini unavailable: {e}]"
+            error_msg = str(e)
+            if "503" in error_msg:
+                error_msg = "Gemini service is currently overloaded. Using template report."
+            elif "404" in error_msg:
+                error_msg = "Requested Gemini model not found. Check project availability."
+            elif "401" in error_msg or "403" in error_msg:
+                error_msg = "Invalid Google API key. Please check your configuration."
+            
+            return self._generate_fallback(result) + f"\n\n[Status: {error_msg}]"
 
     def _build_prompt(self, result: dict[str, Any]) -> str:
         metrics = result.get("metrics", {})

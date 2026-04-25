@@ -12,37 +12,36 @@ import os
 import json
 from typing import Any
 
-from google import genai
+import google.generativeai as genai
 
 
-# ── Gemma 4 model configuration ──────────────────────────────────
+# ── Gemini model configuration ──────────────────────────────────
 
 _API_KEY = os.getenv("GOOGLE_API_KEY")
-_MODEL_NAME = "gemma-4-27b-it"  # Gemma 4 27B Instruct (via Gemini API)
+_MODEL_NAME = "gemini-1.5-flash"
 
-# Fallback chain: try Gemma 4 → Gemini 2.5 Flash
-_FALLBACK_MODELS = ["gemma-4-4b-it", "gemini-2.5-flash"]
+# Fallback chain
+_FALLBACK_MODELS = ["gemini-1.5-pro", "gemini-pro"]
 
 
 def _generate_content(prompt: str) -> Any:
-    """Generate content using Gemma 4 model with fallback."""
+    """Generate content using Gemini models with fallback."""
     if not _API_KEY:
         raise RuntimeError("GOOGLE_API_KEY not set")
-    client = genai.Client(api_key=_API_KEY)
+    
+    genai.configure(api_key=_API_KEY)
 
     # Try primary model first, then fallbacks
     last_error = None
     for model_name in [_MODEL_NAME] + _FALLBACK_MODELS:
         try:
-            return client.models.generate_content(
-                model=model_name,
-                contents=prompt
-            )
+            model = genai.GenerativeModel(model_name)
+            return model.generate_content(prompt)
         except Exception as e:
             last_error = e
             continue
 
-    raise RuntimeError(f"No Gemma/Gemini model available. Last error: {last_error}")
+    raise RuntimeError(f"No Gemini model available. Last error: {last_error}")
 
 
 class GemmaColumnClassifier:
@@ -212,7 +211,6 @@ Respond ONLY with valid JSON:
         """Template-based fallback when Gemma is unavailable."""
         summary = scan_result.get("summary", {})
         score = summary.get("overall_fairness_score", 0)
-        risk = summary.get("overall_risk_level", "unknown")
         biased = summary.get("biased_attributes_found", 0)
 
         return {
