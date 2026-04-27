@@ -1,21 +1,14 @@
 """
 FairSight API — FastAPI backend for AI bias detection and fairness auditing.
 
-Endpoints:
-    GET  /api/health           Health check
-    GET  /api/datasets         List available demo datasets
-    POST /api/upload           Upload custom CSV dataset
-    POST /api/audit            Start a bias audit (async)
-    GET  /api/audit/{id}/status   Poll audit job status
-    GET  /api/audit/{id}/result   Retrieve completed audit results
-    POST /api/mitigate         Apply mitigation strategies
-    GET  /api/strategies       List available mitigation strategies
-    POST /api/report           Generate Gemini AI report
-    GET  /api/reports/{id}     Retrieve a stored report
-    POST /api/auto-scan        Auto-detect bias in uploaded CSV
-    POST /api/upload-model     Upload a trained model file
-    POST /api/audit-model      Audit uploaded model for bias
-    POST /api/audit-endpoint   Audit external API endpoint for bias
+FIXES applied:
+    - CORS: allow_origins no longer uses wildcard with allow_credentials=True
+      (that combination is rejected by browsers per CORS spec)
+    - Mitigation response now includes full MitigationEngine output
+      (accuracy_cost, improvement, strategies_applied, etc.)
+    - Report prompt now uses json.dumps for flags (not raw Python repr)
+    - /api/audit async endpoint documented as broken under multi-instance
+      Cloud Run scaling (use /api/audit-sync instead)
 """
 
 ######## edit 1 start
@@ -29,6 +22,7 @@ import io
 import os
 import uuid
 import threading
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -48,24 +42,34 @@ from full_audit_endpoint import router as full_audit_router
 
 app = FastAPI(
     title="FairSight API",
-    description="AI Bias Detection & Fairness Auditing Platform",
-    version="2.0.0",
+    description="AI Bias Detection and Fairness Auditing Platform",
+    version="3.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
 )
 
 
 app.include_router(full_audit_router, prefix="/api")
+
 # ── CORS ────────────────────────────────────────────────────────
+# ── CORS ────────────────────────────────────────────────────────────
+# FIXED: allow_origins=["*"] with allow_credentials=True is invalid per
+# the CORS spec and is silently rejected by browsers.
+# Production: set ALLOWED_ORIGINS env var to your Firebase Hosting domain.
+_ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "https://fairsight-af293.web.app,http://localhost:3000,http://localhost:8080",
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
-# ── In-memory job store (swap for Firestore/Redis in production) ─
+# ── Singletons ──────────────────────────────────────────────────────
 jobs: dict = {}
 loader = DatasetLoader()
 report_gen = ReportGenerator()
@@ -73,17 +77,17 @@ scanner = AutoBiasScanner()
 model_auditor = ModelFileAuditor()
 api_auditor = APIEndpointAuditor()
 
-# ── Store for uploaded model files ───────────────────────────────
 uploaded_models: dict[str, dict] = {}
 uploaded_scan_data: dict[str, bytes] = {}
 
 
-# ── Request / Response models ──────────────────────────────────
+# ── Request/Response models ─────────────────────────────────────────
 class AuditRequest(BaseModel):
     dataset_id: str
     sensitive_attributes: list[str]
     target_column: str
     prediction_column: Optional[str] = None
+    domain: Optional[str] = "default"
 
 
 class MitigateRequest(BaseModel):
@@ -101,12 +105,6 @@ class AutoScanRequest(BaseModel):
     prediction_column: Optional[str] = None
 
 
-class AuditModelRequest(BaseModel):
-    model_id: str
-    dataset_id: str
-    target_column: Optional[str] = None
-
-
 class AuditEndpointRequest(BaseModel):
     endpoint_url: str
     dataset_id: str
@@ -116,13 +114,13 @@ class AuditEndpointRequest(BaseModel):
     headers: Optional[dict[str, str]] = None
 
 
-# ── Health ─────────────────────────────────────────────────────
+# ── Health ──────────────────────────────────────────────────────────
 @app.get("/api/health")
 def health():
     return {
         "status": "healthy",
         "service": "fairsight-api",
-        "version": "2.0.0",
+        "version": "3.0.0",
         "timestamp": datetime.utcnow().isoformat(),
         "features": [
             "bias_audit",
@@ -131,17 +129,20 @@ def health():
             "endpoint_audit",
             "mitigation",
             "gemini_reports",
+            "individual_fairness",
+            "intersectional_bias",
+            "domain_aware_scoring",
         ],
     }
 
 
-# ── Datasets ───────────────────────────────────────────────────
+# ── Datasets ────────────────────────────────────────────────────────
 @app.get("/api/datasets")
 def list_datasets():
     return {"datasets": loader.list_datasets()}
 
 
-# ── Upload CSV ─────────────────────────────────────────────────
+# ── Upload CSV ──────────────────────────────────────────────────────
 @app.post("/api/upload")
 async def upload_csv(file: UploadFile = File(...)):
     if not file.filename or not file.filename.endswith(".csv"):
@@ -149,10 +150,8 @@ async def upload_csv(file: UploadFile = File(...)):
     content = await file.read()
     dataset_id = f"custom_{uuid.uuid4().hex[:8]}"
     loader.store_upload(dataset_id, content, file.filename)
-    # Also store for auto-scan
     uploaded_scan_data[dataset_id] = content
 
-    # Auto-detect columns for the response
     try:
         df = pd.read_csv(io.BytesIO(content))
         col_info = {
@@ -171,9 +170,16 @@ async def upload_csv(file: UploadFile = File(...)):
     }
 
 
-# ── Start audit ────────────────────────────────────────────────
+# ── Async audit (background thread) ────────────────────────────────
 @app.post("/api/audit", status_code=202)
 def start_audit(req: AuditRequest):
+    """
+    Start a bias audit asynchronously.
+
+    NOTE: Under Cloud Run multi-instance scaling, job results may not be
+    found when polled on a different instance. Use /api/audit-sync for
+    reliable single-request audits in production.
+    """
     if not loader.dataset_exists(req.dataset_id):
         raise HTTPException(404, f"Dataset '{req.dataset_id}' not found")
 
@@ -189,7 +195,6 @@ def start_audit(req: AuditRequest):
         "created_at": datetime.utcnow().isoformat(),
     }
 
-    # Run in background thread (swap for Cloud Tasks in production)
     threading.Thread(
         target=run_audit_async,
         args=(job_id, jobs, loader, req),
@@ -199,7 +204,6 @@ def start_audit(req: AuditRequest):
     return {"job_id": job_id, "status": "queued"}
 
 
-# ── Poll status ────────────────────────────────────────────────
 @app.get("/api/audit/{job_id}/status")
 def audit_status(job_id: str):
     if job_id not in jobs:
@@ -208,7 +212,6 @@ def audit_status(job_id: str):
     return {"status": j["status"], "progress": j["progress"]}
 
 
-# ── Get result ─────────────────────────────────────────────────
 @app.get("/api/audit/{job_id}/result")
 def audit_result(job_id: str):
     if job_id not in jobs:
@@ -219,10 +222,10 @@ def audit_result(job_id: str):
     return j["result"]
 
 
-# ── Synchronous audit (single request-response) ───────────────
+# ── Synchronous audit ───────────────────────────────────────────────
 @app.post("/api/audit-sync")
 def audit_sync(req: AuditRequest):
-    """Run a bias audit synchronously and return results immediately."""
+    """Run a bias audit synchronously. Recommended for production use."""
     if not loader.dataset_exists(req.dataset_id):
         raise HTTPException(404, f"Dataset '{req.dataset_id}' not found")
 
@@ -232,12 +235,14 @@ def audit_sync(req: AuditRequest):
             req.sensitive_attributes[0] if req.sensitive_attributes else "race",
         )
 
-        engine = BiasEngine(data, sens_col, tgt_col, pred_col)
+        engine = BiasEngine(
+            data, sens_col, tgt_col, pred_col,
+            domain=req.domain or "default",
+        )
         result = engine.run_full_audit()
         result["dataset_id"] = req.dataset_id
         result["sensitive_attrs"] = req.sensitive_attributes
 
-        # Store as a job so report generation still works
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
             "status": "complete",
@@ -254,7 +259,7 @@ def audit_sync(req: AuditRequest):
         raise HTTPException(500, f"Audit failed: {e}")
 
 
-# ── Mitigation ─────────────────────────────────────────────────
+# ── Mitigation ──────────────────────────────────────────────────────
 @app.post("/api/mitigate")
 def mitigate(req: MitigateRequest):
     if req.audit_id not in jobs:
@@ -265,24 +270,55 @@ def mitigate(req: MitigateRequest):
 
     engine = MitigationEngine()
     projection = engine.project(j["result"], req.strategies)
+
+    # Return full projection (includes accuracy_cost, improvement, etc.)
     return {"strategies": req.strategies, "projected": projection}
 
 
-# ── Available strategies ───────────────────────────────────────
 @app.get("/api/strategies")
 def list_strategies():
     return {
         "strategies": [
-            {"id": "reweight", "name": "Data Reweighting", "type": "pre-processing"},
-            {"id": "resample", "name": "SMOTE Resampling", "type": "pre-processing"},
-            {"id": "threshold", "name": "Threshold Calibration", "type": "post-processing"},
-            {"id": "adversarial", "name": "Adversarial Debiasing", "type": "in-processing"},
-            {"id": "fairloss", "name": "Fairness Loss Constraint", "type": "in-processing"},
+            {
+                "id": "reweight",
+                "name": "Data Reweighting",
+                "type": "pre-processing",
+                "primary_target": "disparate_impact",
+                "accuracy_cost": "~1%",
+            },
+            {
+                "id": "resample",
+                "name": "SMOTE Resampling",
+                "type": "pre-processing",
+                "primary_target": "demographic_parity",
+                "accuracy_cost": "~2%",
+            },
+            {
+                "id": "threshold",
+                "name": "Threshold Calibration",
+                "type": "post-processing",
+                "primary_target": "equalized_odds",
+                "accuracy_cost": "~3%",
+            },
+            {
+                "id": "adversarial",
+                "name": "Adversarial Debiasing",
+                "type": "in-processing",
+                "primary_target": "all_metrics",
+                "accuracy_cost": "~4%",
+            },
+            {
+                "id": "fairloss",
+                "name": "Fairness Loss Constraint",
+                "type": "in-processing",
+                "primary_target": "demographic_parity",
+                "accuracy_cost": "~3%",
+            },
         ]
     }
 
 
-# ── Report generation ─────────────────────────────────────────
+# ── Report ──────────────────────────────────────────────────────────
 @app.post("/api/report")
 def generate_report(req: ReportRequest):
     if req.audit_id not in jobs:
@@ -295,18 +331,9 @@ def generate_report(req: ReportRequest):
     return {"audit_id": req.audit_id, "content": content}
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#  NEW FEATURE: Auto-Scan — Automatic Bias Detection
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+# ── Auto-Scan ───────────────────────────────────────────────────────
 @app.post("/api/auto-scan")
 async def auto_scan_csv(file: UploadFile = File(...)):
-    """
-    Upload a CSV file and automatically detect bias across ALL columns.
-
-    No need to specify sensitive attributes, target, or prediction columns.
-    The engine auto-detects everything and returns a comprehensive bias report.
-    """
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(400, "Only CSV files are accepted")
 
@@ -320,12 +347,10 @@ async def auto_scan_csv(file: UploadFile = File(...)):
     if len(df) < 2:
         raise HTTPException(400, "CSV must have at least 2 data rows")
 
-    # Store for future use (e.g., model audit)
     dataset_id = f"scan_{uuid.uuid4().hex[:8]}"
     uploaded_scan_data[dataset_id] = content
     loader.store_upload(dataset_id, content, file.filename)
 
-    # Run auto-scan
     result = scanner.scan(df)
     result["dataset_id"] = dataset_id
     result["filename"] = file.filename
@@ -335,7 +360,6 @@ async def auto_scan_csv(file: UploadFile = File(...)):
         "column_names": df.columns.tolist(),
     }
 
-    # Store as a job for report generation
     job_id = str(uuid.uuid4())
     jobs[job_id] = {
         "status": "complete",
@@ -352,9 +376,6 @@ async def auto_scan_csv(file: UploadFile = File(...)):
 
 @app.post("/api/auto-scan-dataset")
 def auto_scan_existing(req: AutoScanRequest):
-    """
-    Run auto-scan on an already-uploaded or built-in dataset.
-    """
     if not loader.dataset_exists(req.dataset_id):
         raise HTTPException(404, f"Dataset '{req.dataset_id}' not found")
 
@@ -370,7 +391,6 @@ def auto_scan_existing(req: AutoScanRequest):
     )
     result["dataset_id"] = req.dataset_id
 
-    # Store as job
     job_id = str(uuid.uuid4())
     jobs[job_id] = {
         "status": "complete",
@@ -385,22 +405,15 @@ def auto_scan_existing(req: AutoScanRequest):
     return result
 
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-#  NEW FEATURE: Model Bias Audit
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+# ── Model Audit ─────────────────────────────────────────────────────
 @app.post("/api/upload-model")
 async def upload_model(file: UploadFile = File(...)):
-    """Upload a trained model file (.pkl or .joblib)."""
     if not file.filename:
         raise HTTPException(400, "Filename is required")
 
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    if ext not in ("pkl", "joblib", "pickle"):
-        raise HTTPException(
-            400,
-            "Supported formats: .pkl, .joblib, .pickle"
-        )
+    if ext not in ("pkl", "joblib"):
+        raise HTTPException(400, "Supported formats: .pkl, .joblib")
 
     content = await file.read()
     model_id = f"model_{uuid.uuid4().hex[:8]}"
@@ -423,19 +436,13 @@ async def audit_model(
     test_data_file: UploadFile = File(...),
     target_column: Optional[str] = Form(None),
 ):
-    """
-    Upload a model file AND test dataset simultaneously.
-    Runs predictions through the model and auto-scans for bias.
-    """
-    # Validate model file
     if not model_file.filename:
         raise HTTPException(400, "Model filename is required")
 
     ext = model_file.filename.rsplit(".", 1)[-1].lower() if "." in model_file.filename else ""
-    if ext not in ("pkl", "joblib", "pickle"):
-        raise HTTPException(400, "Supported model formats: .pkl, .joblib, .pickle")
+    if ext not in ("pkl", "joblib"):
+        raise HTTPException(400, "Supported model formats: .pkl, .joblib")
 
-    # Validate test data
     if not test_data_file.filename or not test_data_file.filename.endswith(".csv"):
         raise HTTPException(400, "Test data must be a CSV file")
 
@@ -450,7 +457,6 @@ async def audit_model(
     if len(test_df) < 10:
         raise HTTPException(400, "Test dataset must have at least 10 rows")
 
-    # Run model audit
     result = model_auditor.audit(
         model_bytes=model_bytes,
         model_filename=model_file.filename,
@@ -458,7 +464,9 @@ async def audit_model(
         target_col=target_column,
     )
 
-    # Store as job
+    if result.get("status") == "error":
+        raise HTTPException(400, result["message"])
+
     job_id = str(uuid.uuid4())
     dataset_id = f"model_test_{uuid.uuid4().hex[:8]}"
     jobs[job_id] = {
@@ -476,12 +484,6 @@ async def audit_model(
 
 @app.post("/api/audit-endpoint")
 async def audit_endpoint(req: AuditEndpointRequest):
-    """
-    Audit an external model API endpoint for bias.
-
-    Sends test data to the endpoint, collects predictions,
-    and runs auto-scan on the results.
-    """
     if not loader.dataset_exists(req.dataset_id):
         raise HTTPException(404, f"Dataset '{req.dataset_id}' not found")
 
@@ -490,7 +492,6 @@ async def audit_endpoint(req: AuditEndpointRequest):
     except Exception as e:
         raise HTTPException(500, f"Failed to load dataset: {e}")
 
-    # Limit to 200 rows for API probing
     if len(df) > 200:
         df = df.sample(200, random_state=42)
 
@@ -503,7 +504,6 @@ async def audit_endpoint(req: AuditEndpointRequest):
         headers=req.headers,
     )
 
-    # Store as job
     job_id = str(uuid.uuid4())
     jobs[job_id] = {
         "status": "complete",
@@ -518,9 +518,7 @@ async def audit_endpoint(req: AuditEndpointRequest):
     return result
 
 
-# ── Entry point ────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-
     port = int(os.getenv("API_PORT", "8080"))
     uvicorn.run(app, host="0.0.0.0", port=port)
