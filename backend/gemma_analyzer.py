@@ -12,7 +12,7 @@ import os
 import json
 from typing import Any
 
-import google.generativeai as genai
+from google import genai
 
 
 # ── Gemini model configuration ──────────────────────────────────
@@ -21,22 +21,24 @@ _API_KEY = os.getenv("GOOGLE_API_KEY")
 _MODEL_NAME = "gemini-1.5-flash"
 
 # Fallback chain
-_FALLBACK_MODELS = ["gemini-1.5-pro", "gemini-pro"]
+_FALLBACK_MODELS = ["gemini-1.5-pro", "gemini-1.0-pro"]
 
 
 def _generate_content(prompt: str) -> Any:
-    """Generate content using Gemini models with fallback."""
+    """Generate content using Gemini models with fallback via the new genai SDK."""
     if not _API_KEY:
         raise RuntimeError("GOOGLE_API_KEY not set")
     
-    genai.configure(api_key=_API_KEY)
+    client = genai.Client(api_key=_API_KEY)
 
     # Try primary model first, then fallbacks
     last_error = None
     for model_name in [_MODEL_NAME] + _FALLBACK_MODELS:
         try:
-            model = genai.GenerativeModel(model_name)
-            return model.generate_content(prompt)
+            return client.models.generate_content(
+                model=model_name,
+                contents=prompt
+            )
         except Exception as e:
             last_error = e
             continue

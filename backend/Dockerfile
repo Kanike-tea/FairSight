@@ -13,11 +13,12 @@ WORKDIR /app
 # Copy installed packages
 COPY --from=builder /install /usr/local/lib/python3.12/site-packages/
 
-# Copy application code
-COPY . .
-
 # Non-root user for security
-RUN useradd --create-home appuser && chown -R appuser:appuser /app
+RUN useradd --create-home appuser
+
+# Copy application code with correct ownership
+COPY --chown=appuser:appuser . .
+
 USER appuser
 
 # Cloud Run expects the PORT environment variable

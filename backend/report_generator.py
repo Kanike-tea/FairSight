@@ -27,13 +27,14 @@ class ReportGenerator:
 
     def _generate_with_gemini(self, result: dict[str, Any]) -> str:
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
+            from google import genai
+            client = genai.Client(api_key=self.api_key)
             prompt = self._build_prompt(result)
 
             try:
+                # Dynamic discovery with the new SDK
                 available_models = [
-                    m.name for m in genai.list_models()
+                    m.name for m in client.models.list()
                     if "generateContent" in m.supported_generation_methods
                 ]
                 gemini_models = [m for m in available_models if "gemini" in m.lower()]
@@ -47,21 +48,23 @@ class ReportGenerator:
                     if m not in models_to_try:
                         models_to_try.append(m)
                 if not models_to_try:
-                    models_to_try = ["gemini-1.5-flash", "gemini-pro"]
+                    models_to_try = ["gemini-1.5-flash", "gemini-1.0-pro"]
             except Exception:
-                models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+                models_to_try = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
 
             last_error = None
             for model_name in models_to_try:
                 try:
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content(prompt)
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt
+                    )
                     return response.text
                 except Exception as e:
                     last_error = e
                     continue
 
-            raise last_error or Exception("No models available")
+            raise last_error or Exception("No Gemini models available for this API key.")
 
         except Exception as e:
             error_msg = str(e)
