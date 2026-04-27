@@ -49,6 +49,9 @@ class AuditService extends ChangeNotifier {
   // ── Model audit results ────────────────────────────────────────
   Map<String, dynamic>? modelAuditResult;
 
+  // ── Full audit results (Advanced Audit) ────────────────────────
+  Map<String, dynamic>? fullAuditResult;
+
   // ── Load available datasets ─────────────────────────────────────
   Future<void> loadDatasets() async {
     loading = true;
@@ -420,5 +423,71 @@ class AuditService extends ChangeNotifier {
         .orderBy('created_at', descending: true)
         .limit(20)
         .snapshots();
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //  FULL AUDIT: Upload CSV (+ optional model) for basic context + analysis
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Future<void> fullAudit({
+    required Uint8List datasetBytes,
+    required String datasetFilename,
+    Uint8List? modelBytes,
+    String? modelFilename,
+    String? targetColumn,
+    String? sensitiveColumns,
+  }) async {
+    loading = true;
+    error = null;
+    fullAuditResult = null;
+    notifyListeners();
+
+    try {
+      // Clear old results immediately before starting the request
+      fullAuditResult = null;
+      notifyListeners();
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$_apiBase/api/full-audit'),
+      );
+
+      request.files.add(http.MultipartFile.fromBytes(
+        'dataset',
+        datasetBytes,
+        filename: datasetFilename,
+      ));
+
+      if (modelBytes != null &&
+          modelFilename != null &&
+          modelFilename.isNotEmpty) {
+        request.files.add(http.MultipartFile.fromBytes(
+          'model_file',
+          modelBytes,
+          filename: modelFilename,
+        ));
+      }
+
+      if (targetColumn != null && targetColumn.isNotEmpty) {
+        request.fields['target_column'] = targetColumn;
+      }
+      if (sensitiveColumns != null && sensitiveColumns.isNotEmpty) {
+        request.fields['sensitive_columns'] = sensitiveColumns;
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        fullAuditResult = jsonDecode(response.body);
+      } else {
+        error = 'Full audit failed: ${response.body}';
+      }
+    } catch (e) {
+      error = 'Full audit error: $e';
+    }
+
+    loading = false;
+    notifyListeners();
   }
 }

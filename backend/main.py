@@ -18,6 +18,13 @@ Endpoints:
     POST /api/audit-endpoint   Audit external API endpoint for bias
 """
 
+######## edit 1 start
+# from full_audit_endpoint import router as full_audit_router
+# app.include_router(full_audit_router)
+
+######### edit 1 end
+
+
 import io
 import os
 import uuid
@@ -37,6 +44,8 @@ from auto_scan import AutoBiasScanner
 from model_auditor import ModelFileAuditor, APIEndpointAuditor
 from tasks import run_audit_async
 
+from full_audit_endpoint import router as full_audit_router
+
 app = FastAPI(
     title="FairSight API",
     description="AI Bias Detection & Fairness Auditing Platform",
@@ -45,6 +54,8 @@ app = FastAPI(
     redoc_url="/api/redoc",
 )
 
+
+app.include_router(full_audit_router, prefix="/api")
 # ── CORS ────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
