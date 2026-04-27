@@ -17,7 +17,7 @@ COPY --from=builder /install /usr/local/lib/python3.12/site-packages/
 COPY . .
 
 # Non-root user for security
-RUN useradd --create-home appuser
+RUN useradd --create-home appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Cloud Run expects the PORT environment variable
