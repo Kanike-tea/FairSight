@@ -476,7 +476,7 @@ class _AdvancedAuditScreenState extends State<AdvancedAuditScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: _teal.withOpacity(0.10),
+                          color: _teal.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
