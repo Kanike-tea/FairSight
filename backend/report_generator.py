@@ -35,10 +35,10 @@ class ReportGenerator:
                 # Dynamic discovery with the new SDK
                 available_models = [
                     m.name for m in client.models.list()
-                    if "generateContent" in m.supported_generation_methods
+                    if 'generateContent' in (getattr(m, 'supported_actions', []) or getattr(m, 'supported_generation_methods', []))
                 ]
                 gemini_models = [m for m in available_models if "gemini" in m.lower()]
-                priority = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"]
+                priority = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"]
                 models_to_try = []
                 for p in priority:
                     matches = [m for m in gemini_models if p in m]
@@ -61,12 +61,14 @@ class ReportGenerator:
                     )
                     return response.text
                 except Exception as e:
+                    print(f"Gemini Error ({model_name}): {e}")
                     last_error = e
                     continue
 
             raise last_error or Exception("No Gemini models available for this API key.")
 
         except Exception as e:
+            print(f"Gemini Error (all models): {e}")
             error_msg = str(e)
             if "503" in error_msg:
                 error_msg = "Gemini service overloaded. Using template report."

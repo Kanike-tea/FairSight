@@ -18,10 +18,10 @@ from google import genai
 # ── Gemini model configuration ──────────────────────────────────
 
 _API_KEY = os.getenv("GOOGLE_API_KEY")
-_MODEL_NAME = "gemini-1.5-flash"
+_MODEL_NAME = "gemini-2.0-flash"
 
 # Fallback chain
-_FALLBACK_MODELS = ["gemini-1.5-pro", "gemini-1.0-pro"]
+_FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
 
 
 def _generate_content(prompt: str) -> Any:
@@ -40,6 +40,7 @@ def _generate_content(prompt: str) -> Any:
                 contents=prompt
             )
         except Exception as e:
+            print(f"Gemini Error ({model_name}): {e}")
             last_error = e
             continue
 

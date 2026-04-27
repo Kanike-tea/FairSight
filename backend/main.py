@@ -23,8 +23,9 @@ import os
 import uuid
 import threading
 import json
+import math
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
@@ -58,16 +59,37 @@ app.include_router(full_audit_router, prefix="/api")
 # Production: set ALLOWED_ORIGINS env var to your Firebase Hosting domain.
 _ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "https://fairsight-af293.web.app,http://localhost:3000,http://localhost:8080",
+    "https://fairsight-af293.web.app,https://fairsight-af293.firebaseapp.com,http://localhost:3000,http://localhost:8080",
 ).split(",")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+# ── Utils ───────────────────────────────────────────────────────────
+def sanitize_numpy(obj: Any) -> Any:
+    """Recursively convert numpy types to Python primitives for JSON serialization."""
+    # Handle numpy arrays (convert to lists)
+    if hasattr(obj, "tolist"):
+        return sanitize_numpy(obj.tolist())
+    
+    if isinstance(obj, dict):
+        return {
+            (str(k) if hasattr(k, "item") else k): sanitize_numpy(v) 
+            for k, v in obj.items()
+        }
+    elif isinstance(obj, list):
+        return [sanitize_numpy(i) for i in obj]
+    elif hasattr(obj, "item") and not isinstance(obj, (str, bytes)):
+        return obj.item()
+    elif isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
+        return 0.0
+    return obj
+
 
 # ── Singletons ──────────────────────────────────────────────────────
 jobs: dict = {}
@@ -254,7 +276,7 @@ def audit_sync(req: AuditRequest):
         }
         result["job_id"] = job_id
 
-        return result
+        return sanitize_numpy(result)
     except Exception as e:
         raise HTTPException(500, f"Audit failed: {e}")
 
@@ -371,7 +393,7 @@ async def auto_scan_csv(file: UploadFile = File(...)):
     }
     result["job_id"] = job_id
 
-    return result
+    return sanitize_numpy(result)
 
 
 @app.post("/api/auto-scan-dataset")
@@ -402,7 +424,7 @@ def auto_scan_existing(req: AutoScanRequest):
     }
     result["job_id"] = job_id
 
-    return result
+    return sanitize_numpy(result)
 
 
 # ── Model Audit ─────────────────────────────────────────────────────
@@ -479,7 +501,7 @@ async def audit_model(
     }
     result["job_id"] = job_id
 
-    return result
+    return sanitize_numpy(result)
 
 
 @app.post("/api/audit-endpoint")
@@ -515,7 +537,7 @@ async def audit_endpoint(req: AuditEndpointRequest):
     }
     result["job_id"] = job_id
 
-    return result
+    return sanitize_numpy(result)
 
 
 if __name__ == "__main__":
