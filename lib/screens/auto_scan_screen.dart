@@ -124,33 +124,74 @@ class _AutoScanScreenState extends State<AutoScanScreen> {
               ),
             ],
 
-            if (scan != null && scan['status'] == 'success') ...[
-              const SizedBox(height: 24),
-              _buildSummaryCard(scan),
-              if (scan['ai_interpretation'] != null) ...[
-                const SizedBox(height: 20),
-                _buildAIAssessmentCard(scan['ai_interpretation']),
-              ],
-              const SizedBox(height: 20),
-              _buildDetectedColumns(scan),
-              const SizedBox(height: 20),
-              _buildBiasHeatmap(scan),
-              const SizedBox(height: 20),
-              _buildAttributeDetails(scan),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => context.go('/report'),
-                  icon: const Icon(Icons.description),
-                  label: const Text('Generate AI Report'),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: _teal),
-                    foregroundColor: _teal,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+            if (scan != null) ...[
+              if (scan['status'] == 'success') ...[
+                const SizedBox(height: 24),
+                _buildSummaryCard(scan),
+              ] else if (scan['status'] == 'warning') ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          scan['message'] ?? 'Could not automatically detect bias in this dataset.',
+                          style: const TextStyle(color: Color(0xFF92400E)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+              ] else if (scan['status'] == 'error') ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFFFEE2E2), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Color(0xFFDC2626)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          scan['message'] ?? 'An error occurred during auto-scan.',
+                          style: const TextStyle(color: Color(0xFF991B1B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              if (scan['status'] == 'success') ...[
+                if (scan['ai_interpretation'] != null) ...[
+                  const SizedBox(height: 20),
+                  _buildAIAssessmentCard(scan['ai_interpretation']),
+                ],
+                const SizedBox(height: 20),
+                _buildDetectedColumns(scan),
+                const SizedBox(height: 20),
+                _buildBiasHeatmap(scan),
+                const SizedBox(height: 20),
+                _buildAttributeDetails(scan),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/report'),
+                    icon: const Icon(Icons.description),
+                    label: const Text('Generate AI Report'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: _teal),
+                      foregroundColor: _teal,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
         ),
