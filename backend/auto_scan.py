@@ -209,7 +209,7 @@ class AutoBiasScanner:
         if not sensitive_candidates:
             return {
                 "status": "warning",
-                "message": "No potential sensitive attributes detected in dataset.",
+                "message": f"No potential sensitive attributes detected in dataset. Roles: {roles}. Target: {resolved_target}",
                 "detected_roles": {k: v for k, v in roles.items()},
                 "resolved_target": resolved_target,
                 "resolved_prediction": resolved_prediction,

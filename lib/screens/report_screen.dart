@@ -602,6 +602,17 @@ class _ReportScreenState extends State<ReportScreen> {
         final trimmed = line.trim();
         if (trimmed.isEmpty) return const SizedBox(height: 4);
 
+        // Check for specific severity tags first (these might not have bullet points)
+        if (trimmed.startsWith('[CRITICAL]')) {
+          return _actionItem(trimmed.replaceFirst('[CRITICAL]', '').trim(), const Color(0xFFEF4444), Icons.error);
+        }
+        if (trimmed.startsWith('[WARNING]')) {
+          return _actionItem(trimmed.replaceFirst('[WARNING]', '').trim(), const Color(0xFFF59E0B), Icons.warning);
+        }
+        if (trimmed.startsWith('[INFO]')) {
+          return _actionItem(trimmed.replaceFirst('[INFO]', '').trim(), const Color(0xFF3B82F6), Icons.info);
+        }
+
         // Sub-headers (e.g., MONITORING (Always):)
         if (trimmed.endsWith(':') || (trimmed.startsWith('**') && trimmed.endsWith('**:'))) {
           reachedSubHeader = true;
@@ -615,6 +626,11 @@ class _ReportScreenState extends State<ReportScreen> {
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
           final text = trimmed.substring(2).trim();
           
+          // Check for tags INSIDE the bullet point
+          if (text.startsWith('[CRITICAL]')) return _actionItem(text.replaceFirst('[CRITICAL]', '').trim(), const Color(0xFFEF4444), Icons.error);
+          if (text.startsWith('[WARNING]')) return _actionItem(text.replaceFirst('[WARNING]', '').trim(), const Color(0xFFF59E0B), Icons.warning);
+          if (text.startsWith('[INFO]')) return _actionItem(text.replaceFirst('[INFO]', '').trim(), const Color(0xFF3B82F6), Icons.info);
+
           // Promoted actions (before sub-headers) get the warning card
           if (!reachedSubHeader) {
             return _actionItem(text, const Color(0xFFF59E0B), Icons.warning);

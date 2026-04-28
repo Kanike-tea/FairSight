@@ -33,7 +33,18 @@ def _generate_content(prompt: str) -> Any:
 
     # Try primary model first, then fallbacks
     last_error = None
-    for model_name in [_MODEL_NAME] + _FALLBACK_MODELS:
+    models_to_try = [_MODEL_NAME] + _FALLBACK_MODELS
+    
+    # Dynamically find an available model as a last resort
+    try:
+        available_models = [m.name for m in client.models.list() if 'gemini' in m.name and 'flash' in m.name]
+        if available_models:
+            # Strip 'models/' prefix if present
+            models_to_try.extend([m.replace('models/', '') for m in available_models[:3]])
+    except Exception:
+        pass
+
+    for model_name in models_to_try:
         try:
             return client.models.generate_content(
                 model=model_name,
