@@ -11,11 +11,7 @@ FIXES applied:
       Cloud Run scaling (use /api/audit-sync instead)
 """
 
-######## edit 1 start
-# from full_audit_endpoint import router as full_audit_router
-# app.include_router(full_audit_router)
 
-######### edit 1 end
 
 
 import io
@@ -39,7 +35,7 @@ from auto_scan import AutoBiasScanner
 from model_auditor import ModelFileAuditor, APIEndpointAuditor
 from tasks import run_audit_async
 
-from full_audit_endpoint import router as full_audit_router
+
 
 app = FastAPI(
     title="FairSight API",
@@ -50,7 +46,7 @@ app = FastAPI(
 )
 
 
-app.include_router(full_audit_router, prefix="/api")
+
 
 # ── CORS ────────────────────────────────────────────────────────
 # ── CORS ────────────────────────────────────────────────────────────
@@ -62,10 +58,14 @@ _ALLOWED_ORIGINS = os.getenv(
     "https://fairsight-af293.web.app,https://fairsight-af293.firebaseapp.com,http://localhost:3000,http://localhost:8080",
 ).split(",")
 
+# For local development: allow all origins if running locally
+if os.getenv("ENV", "local") == "local":
+    _ALLOWED_ORIGINS = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=_ALLOWED_ORIGINS != ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -131,6 +131,7 @@ class AuditEndpointRequest(BaseModel):
     endpoint_url: str
     dataset_id: str
     target_column: Optional[str] = None
+    sensitive_columns: Optional[str] = None
     response_key: str = "prediction"
     request_format: str = "json_rows"
     headers: Optional[dict[str, str]] = None
@@ -457,6 +458,7 @@ async def audit_model(
     model_file: UploadFile = File(...),
     test_data_file: UploadFile = File(...),
     target_column: Optional[str] = Form(None),
+    sensitive_columns: Optional[str] = Form(None),
 ):
     if not model_file.filename:
         raise HTTPException(400, "Model filename is required")
@@ -484,6 +486,7 @@ async def audit_model(
         model_filename=model_file.filename,
         test_data=test_df,
         target_col=target_column,
+        sensitive_cols=sensitive_columns,
     )
 
     if result.get("status") == "error":
@@ -521,6 +524,7 @@ async def audit_endpoint(req: AuditEndpointRequest):
         endpoint_url=req.endpoint_url,
         test_data=df,
         target_col=req.target_column or tgt,
+        sensitive_cols=req.sensitive_columns,
         response_key=req.response_key,
         request_format=req.request_format,
         headers=req.headers,

@@ -49,8 +49,7 @@ class AuditService extends ChangeNotifier {
   // ── Model audit results ────────────────────────────────────────
   Map<String, dynamic>? modelAuditResult;
 
-  // ── Full audit results (Advanced Audit) ────────────────────────
-  Map<String, dynamic>? fullAuditResult;
+
 
   // ── Load available datasets ─────────────────────────────────────
   Future<void> loadDatasets() async {
@@ -104,7 +103,7 @@ class AuditService extends ChangeNotifier {
           sensitiveAttrs: sensitiveAttributes,
           status: 'complete',
           progress: 100,
-          result: data,
+          result: _normalizeModelResult(data),
         );
 
         // Persist to Firestore for audit trail (fire-and-forget)
@@ -221,7 +220,7 @@ class AuditService extends ChangeNotifier {
             ),
             status: 'complete',
             progress: 100,
-            result: autoScanResult,
+            result: _normalizeModelResult(autoScanResult!),
           );
         }
 
@@ -273,7 +272,7 @@ class AuditService extends ChangeNotifier {
             ),
             status: 'complete',
             progress: 100,
-            result: autoScanResult,
+            result: _normalizeModelResult(autoScanResult!),
           );
         }
       } else {
@@ -297,6 +296,7 @@ class AuditService extends ChangeNotifier {
     required Uint8List testDataBytes,
     required String testDataFilename,
     String? targetColumn,
+    String? sensitiveColumns,
   }) async {
     loading = true;
     error = null;
@@ -323,6 +323,9 @@ class AuditService extends ChangeNotifier {
       if (targetColumn != null && targetColumn.isNotEmpty) {
         request.fields['target_column'] = targetColumn;
       }
+      if (sensitiveColumns != null && sensitiveColumns.isNotEmpty) {
+        request.fields['sensitive_columns'] = sensitiveColumns;
+      }
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
@@ -330,19 +333,19 @@ class AuditService extends ChangeNotifier {
       if (response.statusCode == 200) {
         modelAuditResult = jsonDecode(response.body);
 
-        final jobId = modelAuditResult?['job_id'];
-        if (jobId != null) {
-          currentJob = AuditJob(
-            jobId: jobId,
-            datasetId: 'model_audit',
-            sensitiveAttrs: List<String>.from(
-              modelAuditResult?['resolved_columns']?['sensitive_attributes'] ?? [],
-            ),
-            status: 'complete',
-            progress: 100,
-            result: modelAuditResult,
-          );
-        }
+        // Normalize auto-scan nested structure to flat keys for results screen
+        final normalized = _normalizeModelResult(modelAuditResult!);
+        final jobId = modelAuditResult?['job_id'] ?? 'model_${DateTime.now().millisecondsSinceEpoch}';
+        currentJob = AuditJob(
+          jobId: jobId,
+          datasetId: 'model_audit',
+          sensitiveAttrs: List<String>.from(
+            modelAuditResult?['resolved_columns']?['sensitive_attributes'] ?? [],
+          ),
+          status: 'complete',
+          progress: 100,
+          result: normalized,
+        );
 
         // Persist to Firestore (fire-and-forget)
         _db.collection('audits').add({
@@ -370,6 +373,7 @@ class AuditService extends ChangeNotifier {
     required String endpointUrl,
     required String datasetId,
     String? targetColumn,
+    String? sensitiveColumns,
     String responseKey = 'prediction',
   }) async {
     loading = true;
@@ -385,6 +389,7 @@ class AuditService extends ChangeNotifier {
           'endpoint_url': endpointUrl,
           'dataset_id': datasetId,
           'target_column': targetColumn,
+          'sensitive_columns': sensitiveColumns,
           'response_key': responseKey,
         }),
       );
@@ -392,19 +397,17 @@ class AuditService extends ChangeNotifier {
       if (res.statusCode == 200) {
         modelAuditResult = jsonDecode(res.body);
 
-        final jobId = modelAuditResult?['job_id'];
-        if (jobId != null) {
-          currentJob = AuditJob(
-            jobId: jobId,
-            datasetId: datasetId,
-            sensitiveAttrs: List<String>.from(
-              modelAuditResult?['resolved_columns']?['sensitive_attributes'] ?? [],
-            ),
-            status: 'complete',
-            progress: 100,
-            result: modelAuditResult,
-          );
-        }
+        final jobId = modelAuditResult?['job_id'] ?? 'endpoint_${DateTime.now().millisecondsSinceEpoch}';
+        currentJob = AuditJob(
+          jobId: jobId,
+          datasetId: datasetId,
+          sensitiveAttrs: List<String>.from(
+            modelAuditResult?['resolved_columns']?['sensitive_attributes'] ?? [],
+          ),
+          status: 'complete',
+          progress: 100,
+          result: _normalizeModelResult(modelAuditResult!),
+        );
       } else {
         error = 'Endpoint audit failed: ${res.body}';
       }
@@ -425,69 +428,39 @@ class AuditService extends ChangeNotifier {
         .snapshots();
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //  FULL AUDIT: Upload CSV (+ optional model) for basic context + analysis
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Future<void> fullAudit({
-    required Uint8List datasetBytes,
-    required String datasetFilename,
-    Uint8List? modelBytes,
-    String? modelFilename,
-    String? targetColumn,
-    String? sensitiveColumns,
-  }) async {
-    loading = true;
-    error = null;
-    fullAuditResult = null;
-    notifyListeners();
-
-    try {
-      // Clear old results immediately before starting the request
-      fullAuditResult = null;
-      notifyListeners();
-
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$_apiBase/api/full-audit'),
-      );
-
-      request.files.add(http.MultipartFile.fromBytes(
-        'dataset',
-        datasetBytes,
-        filename: datasetFilename,
-      ));
-
-      if (modelBytes != null &&
-          modelFilename != null &&
-          modelFilename.isNotEmpty) {
-        request.files.add(http.MultipartFile.fromBytes(
-          'model_file',
-          modelBytes,
-          filename: modelFilename,
-        ));
-      }
-
-      if (targetColumn != null && targetColumn.isNotEmpty) {
-        request.fields['target_column'] = targetColumn;
-      }
-      if (sensitiveColumns != null && sensitiveColumns.isNotEmpty) {
-        request.fields['sensitive_columns'] = sensitiveColumns;
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        fullAuditResult = jsonDecode(response.body);
-      } else {
-        error = 'Full audit failed: ${response.body}';
-      }
-    } catch (e) {
-      error = 'Full audit error: $e';
+  // ── Normalize model audit result for results screen ─────────────
+  /// The results screen expects flat keys: metrics, flags, group_metrics,
+  /// fairness_score, risk_level. Auto-scan/model-audit results nest these
+  /// under summary + attribute_results. This method promotes the primary
+  /// (most-biased) attribute's data to top-level keys.
+  Map<String, dynamic> _normalizeModelResult(Map<String, dynamic> raw) {
+    // If already has flat 'metrics', it's a manual audit — pass through
+    if (raw.containsKey('metrics') && !raw.containsKey('attribute_results')) {
+      return raw;
     }
 
-    loading = false;
-    notifyListeners();
+    final attrResults = raw['attribute_results'] as List<dynamic>? ?? [];
+    if (attrResults.isEmpty) return raw;
+
+    final summary = raw['summary'] as Map<String, dynamic>? ?? {};
+    final resolved = raw['resolved_columns'] as Map<String, dynamic>? ?? {};
+
+    // Use the most-biased attribute (first in list)
+    final primary = attrResults[0] as Map<String, dynamic>;
+
+    return {
+      ...raw, // preserve original keys (attribute_results, summary, etc.)
+      'fairness_score': summary['overall_fairness_score'] ?? 0,
+      'risk_level': summary['overall_risk_level'] ?? 'unknown',
+      'metrics': primary['metrics'] ?? {},
+      'flags': primary['flags'] ?? [],
+      'group_metrics': primary['group_metrics'] ?? {},
+      'dataset_context': primary['dataset_context'] ?? {},
+      'base_rates': primary['base_rates'] ?? {},
+      'domain': primary['domain'] ?? raw['detected_domain'] ?? 'default',
+      'sensitive_attrs': resolved['sensitive_attributes'] ?? [],
+      'dataset_id': 'model_audit',
+    };
   }
+
 }

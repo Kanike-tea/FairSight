@@ -44,6 +44,7 @@ class ModelFileAuditor:
         model_filename: str,
         test_data: pd.DataFrame,
         target_col: str | None = None,
+        sensitive_cols: str | None = None,
     ) -> dict[str, Any]:
         """
         Run a full bias audit on a serialized model.
@@ -124,6 +125,7 @@ class ModelFileAuditor:
             augmented_df,
             target_col=target_col,
             prediction_col="_model_prediction",
+            sensitive_cols=sensitive_cols,
         )
 
         scan_result["audit_type"] = "model_file"
@@ -248,6 +250,7 @@ class APIEndpointAuditor:
         endpoint_url: str,
         test_data: pd.DataFrame,
         target_col: str | None = None,
+        sensitive_cols: str | None = None,
         request_format: str = "json_rows",
         response_key: str = "prediction",
         headers: dict[str, str] | None = None,
@@ -338,6 +341,7 @@ class APIEndpointAuditor:
             augmented_df,
             target_col=target_col,
             prediction_col="_api_prediction",
+            sensitive_cols=sensitive_cols,
         )
 
         scan_result["audit_type"] = "api_endpoint"

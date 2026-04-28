@@ -21,9 +21,60 @@ class ReportGenerator:
         self.api_key = os.getenv("GOOGLE_API_KEY")
 
     def generate(self, audit_result: dict[str, Any]) -> str:
+        normalized = self._normalize_result(audit_result)
         if self.api_key:
-            return self._generate_with_gemini(audit_result)
-        return self._generate_fallback(audit_result)
+            return self._generate_with_gemini(normalized)
+        return self._generate_fallback(normalized)
+
+    def _normalize_result(self, result: dict[str, Any]) -> dict[str, Any]:
+        """
+        Normalize auto-scan / model-audit results into the flat structure
+        that the report template and Gemini prompt expect.
+
+        Manual audit results already have flat keys (metrics, fairness_score, etc.)
+        and pass through unchanged.
+
+        Auto-scan / model-audit results nest data under 'summary' and
+        'attribute_results' — this method extracts the most-biased attribute's
+        data and promotes it to top-level keys.
+        """
+        # If result already has flat 'metrics' key, it's a manual audit — pass through
+        if "metrics" in result and "attribute_results" not in result:
+            return result
+
+        # Auto-scan / model-audit structure detected
+        summary = result.get("summary", {})
+        attr_results = result.get("attribute_results", [])
+        resolved = result.get("resolved_columns", {})
+
+        if not attr_results:
+            return result
+
+        # Pick the most biased attribute (first in list — already sorted by score)
+        primary = attr_results[0]
+
+        normalized = dict(result)  # shallow copy — preserves all original keys
+        normalized["fairness_score"] = summary.get("overall_fairness_score", 0)
+        normalized["risk_level"] = summary.get("overall_risk_level", "unknown")
+        normalized["metrics"] = primary.get("metrics", {})
+        normalized["flags"] = primary.get("flags", [])
+        normalized["dataset_context"] = primary.get("dataset_context", {})
+        normalized["base_rates"] = primary.get("base_rates", {})
+        normalized["domain"] = primary.get("domain", result.get("detected_domain", "default"))
+        normalized["sensitive_attrs"] = resolved.get("sensitive_attributes", [])
+
+        # Include a per-attribute summary for multi-attribute reports
+        normalized["all_attributes"] = [
+            {
+                "attribute": a.get("attribute"),
+                "fairness_score": a.get("fairness_score"),
+                "risk_level": a.get("risk_level"),
+                "is_biased": a.get("is_biased", False),
+            }
+            for a in attr_results
+        ]
+
+        return normalized
 
     def _generate_with_gemini(self, result: dict[str, Any]) -> str:
         try:
@@ -80,19 +131,26 @@ class ReportGenerator:
 
     def _build_prompt(self, result: dict[str, Any]) -> str:
         metrics = result.get("metrics", {})
-        score = result.get("fairness_score", 0)
-        risk = result.get("risk_level", "unknown")
+        overall_score = result.get("fairness_score", 0)
+        overall_risk = result.get("risk_level", "unknown")
+        primary_attr = result.get("primary_attribute", "Unknown")
+        primary_score = result.get("primary_score", 0)
+        flags = result.get("flags", [])
         context = result.get("dataset_context", {})
         base_rates = result.get("base_rates", {})
         domain = result.get("domain", "default")
-        flags = result.get("flags", [])
+
+        di = metrics.get("disparate_impact", 0)
+        cdi = metrics.get("conditional_disparate_impact", di)
+        dp = metrics.get("demographic_parity_diff", 0)
+        eo = metrics.get("equalized_odds_diff", 0)
+        if_score = metrics.get("individual_fairness", 1.0)
+        acc = metrics.get("model_accuracy", 0)
 
         bias_verdict = context.get("bias_verdict", "unknown")
         bias_source = context.get("bias_source", "unknown")
-        verdict_explanation = context.get("verdict_explanation", "")
-        is_imbalanced = context.get("is_imbalanced_dataset", False)
 
-        # Build base rate summary
+        # Prepare context summaries for prompt
         base_rate_lines = []
         for group, info in base_rates.items():
             base_rate_lines.append(
@@ -102,8 +160,7 @@ class ReportGenerator:
                 f"Ratio={info.get('prediction_ratio', 1.0):.3f}"
             )
         base_rate_summary = "\n".join(base_rate_lines) if base_rate_lines else "  Not available"
-
-        # FIXED: use json.dumps instead of raw Python repr
+        
         flags_json = json.dumps(
             [{"severity": f.get("severity"), "metric": f.get("metric"), "message": f.get("message")}
              for f in flags],
@@ -111,61 +168,57 @@ class ReportGenerator:
         )
 
         domain_framing = {
-            "hiring": "This is a hiring/employment AI system. EEOC guidelines apply.",
-            "criminal_justice": "This is a criminal justice AI system. False positives (wrongful flagging) are especially harmful.",
-            "healthcare": "This is a healthcare allocation AI system. False negatives (missed high-need patients) are life-or-death.",
+            "hiring": "This AI system is used for recruitment. EEOC 4/5ths rule applies.",
+            "criminal_justice": "This is a high-stakes legal AI system. Procedural justice is critical.",
+            "healthcare": "This system allocates medical resources. Health equity is the priority.",
             "financial": "This is a financial/lending AI system. ECOA and fair lending laws apply.",
             "default": "This AI system makes consequential decisions affecting people's lives.",
         }.get(domain, "This AI system makes consequential decisions.")
 
+        # Detect dataset-only mode
+        is_dataset_only = (acc >= 0.999 and eo <= 0.001)
+        dataset_only_note = ""
+        if is_dataset_only:
+            dataset_only_note = """
+CRITICAL NOTE: This is a DATASET-ONLY analysis (no model was involved).
+Model Accuracy = 100% and Equalized Odds = 0% confirm that target == prediction.
+All findings reflect inherent dataset composition bias, NOT model behavior.
+Do NOT use language like "the model discriminates" — instead say "the dataset contains disparities."
+Any model trained on this data will likely inherit or amplify these disparities.
+"""
+
         return f"""You are a fairness auditing expert. Generate a professional, context-aware bias audit report.
 
 DOMAIN CONTEXT: {domain_framing}
+{dataset_only_note}
+
+DATA POINTS:
+- Overall Audit Score: {overall_score}/100
+- Overall Risk Level: {overall_risk.upper()}
+- Primary Finding Attribute: {primary_attr}
+- Primary Attribute Score: {primary_score}/100
+- Disparate Impact: {di:.3f} (Conditional: {cdi:.3f})
+- Demographic Parity Gap: {dp*100:.1f}%
+- Equalized Odds Diff: {eo*100:.1f}%
+- Individual Fairness: {if_score:.3f}
+- Model Accuracy: {acc*100:.1f}%
 
 IMPORTANT — BIAS VERDICT: {bias_verdict.upper()}
-This is the key finding. Before writing anything else, understand:
-- "biased" = the MODEL is discriminating, intervention needed
-- "proportional" = outcome gap exists but reflects dataset composition, NOT model bias
-- "fair" = model passes all thresholds
-- "inconsistent" = nuanced — model is inconsistent relative to base rates
-
-Bias Source: {bias_source}
-Explanation: {verdict_explanation}
-Dataset Imbalanced: {is_imbalanced}
-
-AUDIT SUMMARY:
-Dataset: {result.get('dataset_id', 'Unknown')}
-Sensitive Attributes: {result.get('sensitive_attrs', [])}
-Fairness Score: {score}/100
-Risk Level: {risk}
-
-METRICS (raw = unadjusted, conditional = adjusted for base rates):
-- Disparate Impact (raw):              {metrics.get('disparate_impact', 'N/A'):.3f} (threshold >= 0.80)
-- Disparate Impact (conditional):      {metrics.get('conditional_disparate_impact', 'N/A'):.3f} (threshold >= 0.80)
-- Demographic Parity Gap (raw):        {metrics.get('demographic_parity_diff', 'N/A'):.3f} (threshold <= 0.05)
-- Demographic Parity Gap (conditional):{metrics.get('conditional_demographic_parity_diff', 'N/A'):.3f} (threshold <= 0.05)
-- Equalized Odds Diff:                 {metrics.get('equalized_odds_diff', 'N/A'):.3f} (threshold <= 0.10)
-- Individual Fairness (KNN):           {metrics.get('individual_fairness', 'N/A'):.3f} (threshold >= 0.85)
-- Model Accuracy:                      {metrics.get('model_accuracy', 'N/A'):.3f}
+Root Cause: {bias_source}
 
 GROUP BASE RATES:
 {base_rate_summary}
 
-FLAGS (JSON):
+FLAGS:
 {flags_json}
 
-Write a report with exactly these sections:
-1. EXECUTIVE SUMMARY — State the bias_verdict plainly. One paragraph.
-2. KEY FINDINGS — What each metric shows. Distinguish raw vs conditional metrics.
-3. ROOT CAUSE ANALYSIS — Is this model bias or dataset composition? Be specific.
-4. REAL-WORLD IMPACT — What harm could result if deployed? Tailor to the domain.
-5. COMPLIANCE NOTES — Which regulations apply and whether thresholds are met.
-6. RECOMMENDED ACTIONS — Separate:
-   (a) Model-level fixes (if bias_verdict is "biased")
-   (b) Upstream fixes (if bias_verdict is "proportional" — focus on applicant pool)
-   (c) Monitoring recommendations (always)
-
-Use plain English. Avoid jargon. Write for an executive or regulator, not a data scientist."""
+INSTRUCTIONS:
+1. Use the "Overall Audit Score" ({overall_score}) and "Overall Risk Level" ({overall_risk.upper()}) for the EXECUTIVE SUMMARY.
+2. Clearly state that specific metrics (DI, DP) refer to the most-affected attribute ({primary_attr}).
+3. Use these section headers: EXECUTIVE SUMMARY, KEY FINDINGS, ROOT CAUSE ANALYSIS, COMPLIANCE STATUS, RECOMMENDED ACTIONS.
+4. Format findings into a clear table where possible.
+5. Be objective and professional.
+"""
 
     def _generate_fallback(self, result: dict[str, Any]) -> str:
         """Structured template report — context-aware and includes all five metrics."""
@@ -208,6 +261,9 @@ Use plain English. Avoid jargon. Write for an executive or regulator, not a data
             "default": "General",
         }
 
+        # Detect dataset-only mode (auto-detect with no model)
+        is_dataset_only = (acc >= 0.999 and eo <= 0.001)
+
         report = f"""================================================================================
   FAIRSIGHT AI FAIRNESS AUDIT REPORT
 ================================================================================
@@ -225,18 +281,30 @@ BIAS VERDICT: {verdict_label}
 
 {verdict_explanation}
 
-KEY FINDINGS — FIVE METRICS
+KEY FINDINGS — {result.get('primary_attribute', 'Most Biased Attribute').upper()}
 ----------------------------
-                                Raw       Conditional   Threshold   Status
-Disparate Impact:               {di:.3f}     {cdi:.3f}         >= 0.80     {'PASS' if di >= 0.80 else 'FAIL'} / {'PASS' if cdi >= 0.80 else 'FAIL'}
-Demographic Parity Gap:         {dp*100:.1f}%      {cdp*100:.1f}%          <= 5.0%     {'PASS' if dp <= 0.05 else 'FAIL'} / {'PASS' if cdp <= 0.05 else 'FAIL'}
-Equalized Odds Diff:            {eo*100:.1f}%         —              <= 10.0%    {'PASS' if eo <= 0.10 else 'FAIL'}
-Individual Fairness (KNN):      {if_score:.3f}        —              >= 0.85     {'PASS' if if_score >= 0.85 else 'FAIL'}
-Model Accuracy:                 {acc*100:.1f}%         —              —           —
+(Attribute Score: {result.get('primary_score', 0)}/100)
 
-Note: Conditional metrics account for each group's actual qualification rate.
-      When they diverge from raw metrics, the gap reflects dataset composition.
+                                Raw       Cond.         Threshold   Status
 """
+        if is_dataset_only:
+            report += f"Disparate Impact:               {di:.3f}     N/A           >= 0.80       {'PASS' if di >= 0.80 else 'FAIL'}\n"
+            report += f"Demographic Parity Gap:         {dp*100:.1f}%      N/A           <= 5.0%       {'PASS' if dp <= 0.05 else 'FAIL'}\n"
+            report += f"Individual Fairness (KNN):      {if_score:.3f}        N/A           >= 0.85       {'PASS' if if_score >= 0.85 else 'FAIL'}\n"
+        else:
+
+            report += f"Disparate Impact:               {di:.3f}     {cdi:.3f}         >= 0.80     {'PASS' if di >= 0.80 else 'FAIL'} / {'PASS' if cdi >= 0.80 else 'FAIL'}\n"
+            report += f"Demographic Parity Gap:         {dp*100:.1f}%      {cdp*100:.1f}%          <= 5.0%     {'PASS' if dp <= 0.05 else 'FAIL'} / {'PASS' if cdp <= 0.05 else 'FAIL'}\n"
+            report += f"Equalized Odds Diff:            {eo*100:.1f}%         —              <= 10.0%    {'PASS' if eo <= 0.10 else 'FAIL'}\n"
+            report += f"Individual Fairness (KNN):      {if_score:.3f}        —              >= 0.85     {'PASS' if if_score >= 0.85 else 'FAIL'}\n"
+            report += f"Model Accuracy:                 {acc*100:.1f}%         —              —           —\n"
+
+        if not is_dataset_only:
+            report += "\nNote: Conditional metrics account for each group's actual qualification rate.\n"
+            report += "      When they diverge from raw metrics, the gap reflects dataset composition.\n"
+        else:
+            report += "\nNote: This is a dataset-only scan. Conditional and model metrics are not applicable.\n"
+
 
         if base_rates:
             report += "\nGROUP BASE RATES\n"
@@ -265,6 +333,14 @@ Note: Conditional metrics account for each group's actual qualification rate.
                 "Even accounting for each group's qualification rate, the model\n"
                 "systematically under-predicts for disadvantaged groups.\n"
                 "Direct model intervention is required.\n"
+            )
+        elif bias_verdict == "inconsistent" or (di < 0.80 or cdi < 0.80 or dp > 0.05 or eo > 0.10):
+            report += (
+                "INCONSISTENCY DETECTED between raw and conditional metrics.\n"
+                f"Raw Disparate Impact ({di:.3f}) vs Conditional DI ({cdi:.3f}) diverge,\n"
+                "indicating the model treats groups differently relative to their\n"
+                "actual qualification rates. Further investigation is required to\n"
+                "determine whether this stems from data imbalance or model bias.\n"
             )
         else:
             report += "No significant bias detected from dataset or model.\n"

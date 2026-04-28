@@ -58,14 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(color: Color(0xFF0D9488), fontWeight: FontWeight.w600),
             ),
           ),
-          TextButton.icon(
-            onPressed: () => context.go('/advanced-audit'),
-            icon: const Icon(Icons.analytics, color: Colors.white),
-            label: const Text(
-              'Advanced Audit',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
+
           TextButton.icon(
             onPressed: () => context.go('/external-audit'),
             icon: const Icon(Icons.model_training, color: Colors.white),
@@ -142,25 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            OutlinedButton.icon(
-                              onPressed: () => context.go('/advanced-audit'),
-                              icon: const Icon(Icons.analytics, size: 18, color: Colors.white70),
-                              label: const Text(
-                                'Advanced Audit',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Colors.white30),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 14,
-                                ),
-                              ),
-                            ),
+
                             const SizedBox(width: 12),
                             OutlinedButton.icon(
                               onPressed: () => context.go('/audit'),

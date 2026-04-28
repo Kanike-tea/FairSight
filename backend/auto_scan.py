@@ -141,6 +141,7 @@ class AutoBiasScanner:
         target_col: str | None = None,
         prediction_col: str | None = None,
         domain: str | None = None,
+        sensitive_cols: str | None = None,
     ) -> dict[str, Any]:
         """
         Full auto-scan pipeline.
@@ -192,10 +193,18 @@ class AutoBiasScanner:
         # Previously, leftover target columns (not chosen as the primary target)
         # were added here, causing outcome variables like 'hired' to be audited
         # as if they were demographic attributes.
-        sensitive_candidates = [
-            c for c in roles["sensitive"]
-            if c not in (resolved_target, resolved_prediction)
-        ]
+        if sensitive_cols:
+            # User explicitly specified sensitive columns — use them directly
+            sensitive_candidates = [
+                c.strip() for c in sensitive_cols.split(",")
+                if c.strip() in df.columns
+            ]
+        else:
+            # Fallback to auto-detect
+            sensitive_candidates = [
+                c for c in roles["sensitive"]
+                if c not in (resolved_target, resolved_prediction)
+            ]
 
         if not sensitive_candidates:
             return {
@@ -233,7 +242,9 @@ class AutoBiasScanner:
             "summary": {
                 "total_attributes_scanned": len(sensitive_candidates),
                 "biased_attributes_found": sum(
-                    1 for r in attribute_results if r["fairness_score"] < 65
+                    1 for r in attribute_results
+                    if r["fairness_score"] < 65
+                    or r.get("metrics", {}).get("disparate_impact", 1.0) < 0.80
                 ),
                 "critical_attributes": critical_count,
                 "overall_fairness_score": overall_score,
@@ -266,7 +277,15 @@ class AutoBiasScanner:
     ) -> dict[str, Any] | None:
         """Run full bias analysis for a single sensitive attribute."""
         try:
-            work_df = df[[sens_col, target_col, prediction_col]].copy()
+            # Deduplicate columns (target == prediction in dataset-only mode)
+            needed_cols = list(dict.fromkeys([sens_col, target_col, prediction_col]))
+            work_df = df[needed_cols].copy()
+            # If target == prediction, create a separate prediction column
+            if target_col == prediction_col:
+                work_df = work_df.rename(columns={}, copy=True)
+                # Ensure we have distinct columns for the engine
+                work_df['_prediction'] = work_df[target_col]
+                prediction_col = '_prediction'
 
             binarized_note = None
 
@@ -339,7 +358,10 @@ class AutoBiasScanner:
                 "dataset_context": audit.get("dataset_context", {}),
                 "group_labels": {str(k): v for k, v in original_groups.items()},
                 "num_groups": df[sens_col].nunique(),
-                "is_biased": audit["fairness_score"] < 65,
+                "is_biased": (
+                    audit["fairness_score"] < 65
+                    or audit.get("metrics", {}).get("disparate_impact", 1.0) < 0.80
+                ),
                 "domain": domain,
             }
 
@@ -394,8 +416,10 @@ def _matches_any(text: str, patterns: list[str]) -> bool:
 
 
 def _risk_from_score(score: int) -> str:
-    if score >= 65:
+    if score >= 85:
         return "low"
-    if score >= 40:
+    if score >= 60:
         return "medium"
+    if score >= 40:
+        return "high"
     return "critical"

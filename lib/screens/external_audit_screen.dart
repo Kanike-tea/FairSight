@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +21,7 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
   String? _testFileName;
   List<int>? _testBytes;
   final _targetColCtrl = TextEditingController();
+  final _sensitiveColsCtrl = TextEditingController();
 
   // API endpoint state
   final _urlCtrl = TextEditingController(text: 'https://');
@@ -41,6 +43,7 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
   void dispose() {
     _tabCtrl.dispose();
     _targetColCtrl.dispose();
+    _sensitiveColsCtrl.dispose();
     _urlCtrl.dispose();
     _responseKeyCtrl.dispose();
     super.dispose();
@@ -79,11 +82,12 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
 
     final svc = context.read<AuditService>();
     await svc.auditModel(
-      modelBytes: _modelBytes! as dynamic,
+      modelBytes: Uint8List.fromList(_modelBytes!),
       modelFilename: _modelFileName!,
-      testDataBytes: _testBytes! as dynamic,
+      testDataBytes: Uint8List.fromList(_testBytes!),
       testDataFilename: _testFileName!,
       targetColumn: _targetColCtrl.text.isNotEmpty ? _targetColCtrl.text : null,
+      sensitiveColumns: _sensitiveColsCtrl.text.isNotEmpty ? _sensitiveColsCtrl.text : null,
     );
 
     if (mounted) setState(() => _auditing = false);
@@ -97,6 +101,8 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
     await svc.auditEndpoint(
       endpointUrl: _urlCtrl.text,
       datasetId: _selectedDatasetId!,
+      targetColumn: _targetColCtrl.text.isNotEmpty ? _targetColCtrl.text : null,
+      sensitiveColumns: _sensitiveColsCtrl.text.isNotEmpty ? _sensitiveColsCtrl.text : null,
       responseKey: _responseKeyCtrl.text.isNotEmpty ? _responseKeyCtrl.text : 'prediction',
     );
 
@@ -209,6 +215,19 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
+          const SizedBox(height: 12),
+
+          // Sensitive columns (optional)
+          TextField(
+            controller: _sensitiveColsCtrl,
+            decoration: InputDecoration(
+              labelText: 'Sensitive columns (optional)',
+              hintText: 'e.g., gender, race, age',
+              helperText: 'Comma-separated. Leave blank for auto-detect.',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
           const SizedBox(height: 20),
 
           // Run button
@@ -293,6 +312,29 @@ class _ExternalAuditScreenState extends State<ExternalAuditScreen>
               labelText: 'Response JSON key for prediction',
               hintText: 'prediction',
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: _targetColCtrl,
+            decoration: InputDecoration(
+              labelText: 'Target column (optional)',
+              hintText: 'e.g., approved, income, label',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          TextField(
+            controller: _sensitiveColsCtrl,
+            decoration: InputDecoration(
+              labelText: 'Sensitive columns (optional)',
+              hintText: 'e.g., gender, race, age',
+              helperText: 'Comma-separated. Leave blank for auto-detect.',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
           ),
           const SizedBox(height: 16),
