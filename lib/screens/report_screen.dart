@@ -353,9 +353,14 @@ class _ReportScreenState extends State<ReportScreen> {
       return _buildMetricsTable(section.body);
     }
 
-    // For RECOMMENDED ACTIONS, render bullet points as action cards
+    // For RECOMMENDED ACTIONS, render first few bullets as cards, then standard text
     if (section.title.contains('RECOMMENDED') || section.title.contains('ACTIONS')) {
       return _buildActionsSection(section.body);
+    }
+
+    // For COMPLIANCE STATUS, render as chips
+    if (section.title.contains('COMPLIANCE')) {
+      return _buildComplianceSection(section.body);
     }
 
     // For GROUP BASE RATES, render as cards
@@ -589,23 +594,46 @@ class _ReportScreenState extends State<ReportScreen> {
 
   Widget _buildActionsSection(String body) {
     final lines = body.split('\n');
+    bool reachedSubHeader = false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: lines.map((line) {
         final trimmed = line.trim();
         if (trimmed.isEmpty) return const SizedBox(height: 4);
 
-        // Treat bullet points in this section as "Warning" action items
-        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-          final text = trimmed.substring(2).trim();
-          return _actionItem(text, const Color(0xFFF59E0B), Icons.warning);
+        // Sub-headers (e.g., MONITORING (Always):)
+        if (trimmed.endsWith(':') || (trimmed.startsWith('**') && trimmed.endsWith('**:'))) {
+          reachedSubHeader = true;
+          return Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 6),
+            child: _parseBoldText(trimmed, fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+          );
         }
 
-        // Sub-headers
-        if (trimmed.endsWith(':') || (trimmed.startsWith('**') && trimmed.endsWith('**:'))) {
+        // Bullet points
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          final text = trimmed.substring(2).trim();
+          
+          // Promoted actions (before sub-headers) get the warning card
+          if (!reachedSubHeader) {
+            return _actionItem(text, const Color(0xFFF59E0B), Icons.warning);
+          }
+          
+          // Standard monitoring bullets (after sub-headers)
           return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: _parseBoldText(trimmed, fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+            padding: const EdgeInsets.only(left: 8, bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Icon(Icons.chevron_right, size: 14, color: Color(0xFF94A3B8)),
+                ),
+                const SizedBox(width: 6),
+                Expanded(child: _parseBoldText(text, fontSize: 13, color: const Color(0xFF475569))),
+              ],
+            ),
           );
         }
 
@@ -624,16 +652,22 @@ class _ReportScreenState extends State<ReportScreen> {
         final isFair = line.contains('Fair');
         final color = isFair ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
         return Container(
-          margin: const EdgeInsets.only(bottom: 6),
-          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            color: color.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
           ),
           child: Text(
             line.trim(),
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace', height: 1.4),
+            style: TextStyle(
+              fontSize: 13, 
+              color: color.withValues(alpha: 0.7),
+              height: 1.4,
+              letterSpacing: 0.1,
+            ),
           ),
         );
       }).toList(),
