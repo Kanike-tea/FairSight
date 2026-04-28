@@ -404,14 +404,27 @@ class _ReportScreenState extends State<ReportScreen> {
     );
 
     for (final line in lines) {
-      if (line.trim().startsWith('Raw') || line.trim().startsWith('Note:') || line.trim().startsWith('When')) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('Raw') || trimmed.startsWith('Note:') || trimmed.startsWith('When')) {
         continue; // Skip sub-header and note lines
       }
+      if (trimmed.contains('---') && trimmed.contains('|')) {
+        continue; // Skip markdown separator line
+      }
 
-      // Parse metric lines like "Disparate Impact:   0.802   0.428   >= 0.80   FAIL / PASS"
-      final parts = line.split(RegExp(r'\s{2,}'));
+      // Try splitting by pipe (markdown) or by multiple spaces
+      List<String> parts;
+      if (trimmed.contains('|')) {
+        parts = trimmed.split('|')
+            .map((p) => p.trim())
+            .where((p) => p.isNotEmpty)
+            .toList();
+      } else {
+        parts = trimmed.split(RegExp(r'\s{2,}')).map((p) => p.trim()).toList();
+      }
+
       if (parts.length >= 3) {
-        final metric = parts[0].trim().replaceAll(':', '');
+        final metric = parts[0].replaceAll(':', '').trim();
         final raw = parts.length > 1 ? parts[1].trim() : '—';
         final conditional = parts.length > 2 ? parts[2].trim() : '—';
 
@@ -528,10 +541,12 @@ class _ReportScreenState extends State<ReportScreen> {
       spacing: 8,
       runSpacing: 8,
       children: lines.map((line) {
-        final parts = line.split(':');
+        // Clean leading markdown bullet points or numbers
+        final cleanLine = line.trim().replaceFirst(RegExp(r'^[\-\*\•\d\.\s]+'), '');
+        final parts = cleanLine.split(':');
         if (parts.length < 2) return const SizedBox.shrink();
         final label = parts[0].trim();
-        final status = parts.sublist(1).join(':').trim();
+        final status = parts.sublist(1).join(':').trim().toUpperCase();
 
         Color color;
         IconData icon;
