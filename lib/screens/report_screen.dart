@@ -353,9 +353,9 @@ class _ReportScreenState extends State<ReportScreen> {
       return _buildMetricsTable(section.body);
     }
 
-    // For COMPLIANCE STATUS, render as chips
-    if (section.title.contains('COMPLIANCE')) {
-      return _buildComplianceSection(section.body);
+    // For RECOMMENDED ACTIONS, render bullet points as action cards
+    if (section.title.contains('RECOMMENDED') || section.title.contains('ACTIONS')) {
+      return _buildActionsSection(section.body);
     }
 
     // For GROUP BASE RATES, render as cards
@@ -455,19 +455,19 @@ class _ReportScreenState extends State<ReportScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(metric, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                child: _parseBoldText(metric, fontSize: 12, fontWeight: FontWeight.w500),
               ),
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(raw, style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: rawFails ? const Color(0xFFEF4444) : const Color(0xFF1E293B))),
+                child: _parseBoldText(raw, fontSize: 12, fontFamily: 'monospace', color: rawFails ? const Color(0xFFEF4444) : const Color(0xFF1E293B)),
               ),
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(conditional, style: TextStyle(fontSize: 12, fontFamily: 'monospace', color: conditional == '—' ? const Color(0xFF94A3B8) : condColor)),
+                child: _parseBoldText(conditional, fontSize: 12, fontFamily: 'monospace', color: conditional == '—' ? const Color(0xFF94A3B8) : condColor),
               ),
               Padding(
                 padding: const EdgeInsets.all(8),
-                child: Text(threshold, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                child: _parseBoldText(threshold, fontSize: 11, color: const Color(0xFF94A3B8)),
               ),
               Padding(
                 padding: const EdgeInsets.all(8),
@@ -577,11 +577,41 @@ class _ReportScreenState extends State<ReportScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
-                  Text(status, style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8))),
+                  _parseBoldText(status, fontSize: 10, color: color.withValues(alpha: 0.8)),
                 ],
               ),
             ],
           ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActionsSection(String body) {
+    final lines = body.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        final trimmed = line.trim();
+        if (trimmed.isEmpty) return const SizedBox(height: 4);
+
+        // Treat bullet points in this section as "Warning" action items
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          final text = trimmed.substring(2).trim();
+          return _actionItem(text, const Color(0xFFF59E0B), Icons.warning);
+        }
+
+        // Sub-headers
+        if (trimmed.endsWith(':') || (trimmed.startsWith('**') && trimmed.endsWith('**:'))) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: _parseBoldText(trimmed, fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: _parseBoldText(trimmed),
         );
       }).toList(),
     );
@@ -629,49 +659,61 @@ class _ReportScreenState extends State<ReportScreen> {
           return _actionItem(trimmed.replaceFirst('[INFO]', '').trim(), const Color(0xFF3B82F6), Icons.info);
         }
 
-        // Bullet points
-        if (trimmed.startsWith('- ')) {
-          return Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 6),
-                  child: Icon(Icons.chevron_right, size: 14, color: Color(0xFF94A3B8)),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    trimmed.substring(2),
-                    style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF475569)),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Sub-headers (like "UPSTREAM (Applicant Pool):" or "MONITORING (Always):")
-        if (trimmed.endsWith(':') && trimmed == trimmed.toUpperCase()) {
+        // Sub-headers
+        if (trimmed.endsWith(':') || (trimmed.startsWith('**') && trimmed.endsWith('**:'))) {
           return Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Text(
-              trimmed,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
-            ),
+            child: _parseBoldText(trimmed, fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF475569)),
           );
         }
 
         // Normal text
         return Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            trimmed,
-            style: const TextStyle(fontSize: 13, height: 1.6, color: Color(0xFF1E293B)),
-          ),
+          child: _parseBoldText(trimmed),
         );
       }).toList(),
+    );
+  }
+
+  Widget _parseBoldText(String text, {
+    double fontSize = 13, 
+    Color color = const Color(0xFF1E293B),
+    FontWeight fontWeight = FontWeight.normal,
+    String? fontFamily,
+    double height = 1.6,
+  }) {
+    final spans = <TextSpan>[];
+    final regExp = RegExp(r'\*\*(.*?)\*\*');
+    int lastMatchEnd = 0;
+
+    for (final match in regExp.allMatches(text)) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(text: text.substring(lastMatchEnd, match.start)));
+      }
+      spans.add(TextSpan(
+        text: match.group(1),
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize, color: color, fontFamily: fontFamily),
+      ));
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastMatchEnd)));
+    }
+
+    if (spans.isEmpty) {
+      return Text(
+        text,
+        style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight, fontFamily: fontFamily, height: height),
+      );
+    }
+
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(fontSize: fontSize, color: color, fontWeight: fontWeight, fontFamily: fontFamily, height: height),
+        children: spans,
+      ),
     );
   }
 
