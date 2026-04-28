@@ -617,15 +617,7 @@ test_api.py        — 14 tests: health, datasets, audit, mitigation, strategies
 
 ---
 
-## Team
 
-**Team FairSight** — Solution Challenge 2026 India
-
-| Member | Role |
-|--------|------|
-| Member A | ML/Backend — Bias Engine, FastAPI, Cloud Run |
-| Member B | Frontend/UX — Flutter, Firebase |
-| Member C | Data & Research — Datasets, Metrics, Documentation |
 
 ---
 
