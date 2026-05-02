@@ -340,12 +340,6 @@ After the COMPAS audit:
 2. Upload a `.pkl` sklearn model + a test CSV
 3. FairSight runs predictions and auto-scans for bias
 
-<<<<<<< HEAD
-**Security check:** Upload a `.txt` file renamed to `.pkl` — it will be rejected with a clear error. Only joblib-serialized sklearn models are accepted.
-=======
-**Security note for demo:** Only joblib-serialized sklearn models are accepted.
-Try uploading a `.txt` file renamed to `.pkl` — it will be rejected with a clear error.
-
 ---
 
 ## Deployment to Google Cloud
@@ -499,64 +493,6 @@ firebase deploy --only hosting
 | **Intersectional bias invisible to single-attribute audits** | `intersectional_bias()` detects disparities at group intersections (e.g. Black women vs white men) |
 | **Real-time audit performance on Cloud Run** | Synchronous `/api/audit-sync` endpoint for reliable single-request audits without polling |
 | **No single "right" mitigation** | Projected improvement uses regression-to-threshold logic with per-strategy accuracy cost, letting users choose the trade-off |
-
----
-
-## Demo Video Script (≤ 3 minutes)
-
-### 0:00–0:20 — Hook
-
-> *"AI is making life-changing decisions about who gets hired, who gets a loan, who gets
-> healthcare. But these systems can discriminate — invisibly and at scale. The COMPAS
-> algorithm falsely flagged Black defendants as future criminals at nearly twice the rate of
-> white defendants. FairSight was built to catch this — before deployment."*
-
-**Show:** FairSight home screen with the four dataset cards.
-
-### 0:20–0:45 — The Insight
-
-> *"Most tools just compare outcome rates. But if 80% of applicants are men and 80% get
-> hired — that's not bias, that's math. FairSight uses Conditional Disparate Impact to
-> distinguish dataset composition from genuine model discrimination."*
-
-**Show:** Two-column results: raw DI vs conditional DI.
-
-### 0:45–1:30 — Live Demo: Genuine Bias (COMPAS)
-
-> *"COMPAS. Race as the sensitive attribute. Score: 38/100, Risk: Critical, Verdict: BIASED.
-> Raw DI is 0.63 — below the EEOC threshold. Conditional DI also fails. Genuine model discrimination."*
-
-**Show:** Score hero card, metrics grid, flags section.
-
-### 1:30–1:50 — Live Demo: Dataset Composition (Adult Income)
-
-> *"Same tool, different story. Adult Income, gender. Raw DI fails — but Conditional DI passes.
-> The model is fair. The gap is in the data. Fix recruitment, not the model."*
-
-**Show:** `PROPORTIONAL` verdict, info-severity flag.
-
-### 1:50–2:10 — Auto-Scan
-
-> *"You don't need to know which columns are sensitive. Upload any CSV and FairSight finds them."*
-
-**Do:** Upload `biased_dataset.csv`. **Show:** Bias heatmap.
-
-### 2:10–2:30 — Mitigation
-
-> *"Once bias is found, FairSight shows how to fix it — with projected improvement before you commit."*
-
-**Do:** Select `reweight` + `threshold`. **Show:** Score projection, accuracy cost.
-
-### 2:30–2:50 — AI Report & Stack
-
-> *"One click generates a plain-English audit report via Google Gemini — for executives and regulators.
-> Running on Cloud Run, Firestore, Vertex AI, and Flutter."*
-
-**Show:** Report screen, then tech stack.
-
-### 2:50–3:00 — Close
-
-> *"FairSight. AI bias is not inevitable. It is measurable, flaggable, and fixable."*
 
 ---
 
