@@ -1,82 +1,81 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build">
-  <img src="https://img.shields.io/badge/tests-68%20passed-brightgreen" alt="Tests">
-  <img src="https://img.shields.io/badge/Python-3.12-blue" alt="Python">
-  <img src="https://img.shields.io/badge/Flutter-3.x-blue" alt="Flutter">
-  <img src="https://img.shields.io/badge/Firebase-enabled-orange" alt="Firebase">
-  <img src="https://img.shields.io/badge/Vertex%20AI-Gemini-blue" alt="Vertex AI">
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License">
+  <img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build">
+  <img src="https://img.shields.io/badge/tests-82%20passed-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter&logoColor=white" alt="Flutter">
+  <img src="https://img.shields.io/badge/Firebase-enabled-FFCA28?style=flat-square&logo=firebase&logoColor=black" alt="Firebase">
+  <img src="https://img.shields.io/badge/Gemini-Vertex%20AI-4285F4?style=flat-square&logo=google&logoColor=white" alt="Vertex AI">
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=flat-square" alt="License">
 </p>
 
-# FairSight
+<h1 align="center">⚖️ FairSight</h1>
+<h3 align="center">AI Bias Detection & Fairness Auditing Platform</h3>
 
-### AI Bias Detection & Fairness Auditing Platform
+<p align="center">
+  <strong>Solution Challenge 2026 India — Build with AI</strong><br>
+  Theme: <em>Unbiased AI Decision</em> &nbsp;|&nbsp; Built with Google Technologies
+</p>
 
-> **Solution Challenge 2026 India — Build with AI**
-> Theme: **Unbiased AI Decision** | Built with Google Technologies
-
-**Live Demo:** [https://fairsight-af293.web.app/](https://fairsight-af293.web.app/)
-
----
-
-## Problem Statement
-
-Computer programs now make life-changing decisions — who gets a job, a bank loan, or medical
-care. When these systems learn from flawed historical data, they repeat and amplify
-discriminatory mistakes at massive scale.
-
-**FairSight** gives organizations a clear, accessible way to inspect datasets and AI models
-for hidden bias, measure fairness using industry-standard metrics, flag violations, and fix
-them — before they impact real people.
-
-> **Full problem statement →** [`docs/problem_statement.md`](docs/problem_statement.md)
+<p align="center">
+  <a href="https://fairsight-af293.web.app/"><strong>🌐 Live Demo → fairsight-af293.web.app</strong></a>
+</p>
 
 ---
 
-## Solution
+## The Problem
+
+Computer programs now make life-changing decisions — who gets a job, a bank loan, or medical care. When these systems learn from flawed historical data, they repeat and amplify discriminatory mistakes at massive scale.
+
+The COMPAS recidivism algorithm falsely flagged Black defendants as future criminals at **nearly twice the rate** of white defendants. Hiring models trained on historical data routinely disadvantage women and minorities. Healthcare allocation systems underserve high-need populations.
+
+**There is no accessible, end-to-end tool that lets non-experts audit these systems, understand *why* they are biased, and know exactly what to fix.**
+
+> Full problem statement → [`docs/problem_statement.md`](docs/problem_statement.md)
+
+---
+
+## The Solution
 
 ```
 Upload CSV  →  Detect Bias  →  Flag Issues  →  AI Report  →  Mitigate & Fix
 ```
 
-1. **Upload** a dataset with demographic columns + model predictions
-2. **Detect** bias using 5 industry-standard fairness metrics
-3. **Flag** violations with severity levels and legal references
-4. **Generate** plain-English audit reports powered by **Google Gemini**
-5. **Apply** mitigation strategies and preview projected improvement
+1. **Upload** a dataset with demographic columns + model predictions (or pick one of 4 included real-world datasets)
+2. **Detect** bias using 5 industry-standard fairness metrics with domain-aware scoring
+3. **Flag** violations with severity levels, legal references, and clear explanations
+4. **Generate** plain-English audit reports powered by **Google Gemini** — written for executives and regulators, not data scientists
+5. **Apply** mitigation strategies and preview projected improvement *before* committing
 
-> **Full solution overview →** [`docs/solution_overview.md`](docs/solution_overview.md)
+> Full solution overview → [`docs/solution_overview.md`](docs/solution_overview.md)
 
 ---
 
 ## Key Innovation: Context-Aware Bias Detection
 
-FairSight goes beyond raw metric comparison. It distinguishes between two fundamentally
-different situations that naive tools conflate:
+FairSight goes beyond raw metric comparison. It distinguishes between two fundamentally different situations that naive fairness tools conflate:
 
-| Situation | Example | Verdict | Action |
-|-----------|---------|---------|--------|
-| **Dataset composition** | 80% men applied, 80% men hired | `proportional` | Fix recruitment pipeline |
+| Situation | Example | Verdict | Correct Action |
+|-----------|---------|---------|----------------|
+| **Dataset composition** | 80% men applied, 80% hired | `proportional` | Fix the recruitment pipeline |
 | **Model discrimination** | Equal applicants, model favours one group | `biased` | Fix the model |
 
-Raw Disparate Impact cannot tell these apart. FairSight uses **Conditional Disparate Impact**
-(adjusted for each group's actual qualification rate) to give the correct verdict.
+Raw Disparate Impact cannot tell these apart. FairSight uses **Conditional Disparate Impact** — adjusting each group's prediction rate by its actual qualification rate — to give the correct verdict and the correct recommendation.
 
 ---
 
-## Google Technologies Used
+## Google Technologies
 
 | Technology | Role in FairSight |
-|-----------|-------------------|
+|---|---|
 | **Vertex AI (Gemini)** | Context-aware plain-English fairness report generation |
 | **Cloud Run** | Serverless auto-scaling API backend |
-| **Firebase Firestore** | Real-time job and results storage |
-| **Firebase Auth** | User authentication & org management |
-| **Firebase Hosting** | Frontend deployment |
+| **Firebase Firestore** | Real-time audit job and results storage |
+| **Firebase Auth** | User authentication & organisation management |
+| **Firebase Hosting** | Flutter web frontend deployment |
 | **Cloud Storage** | Encrypted dataset storage |
 | **Cloud Tasks** | Async bias computation queue |
-| **BigQuery** | Audit analytics and fairness trends |
-| **Flutter** | Cross-platform frontend (web + mobile) |
+| **BigQuery** | Audit analytics and fairness trend tracking |
+| **Flutter** | Cross-platform frontend (web + mobile, single codebase) |
 | **Cloud Build** | CI/CD pipeline |
 
 ---
@@ -88,7 +87,7 @@ Raw Disparate Impact cannot tell these apart. FairSight uses **Conditional Dispa
 | Disparate Impact | P(Y=1\|unprivileged) / P(Y=1\|privileged) | ≥ 0.80 | EEOC 4/5ths Rule |
 | Conditional DI | Prediction ratio adjusted for base rates | ≥ 0.80 | Context-aware EEOC |
 | Demographic Parity | \|P(Y=1\|A=0) − P(Y=1\|A=1)\| | ≤ 5% | EU AI Act |
-| Equalized Odds | max(\|FPR diff\|, \|FNR diff\|) | ≤ 10% | Fair Lending |
+| Equalized Odds | max(\|FPR diff\|, \|FNR diff\|) | ≤ 10% | Fair Lending Act |
 | Individual Fairness | KNN consistency score | ≥ 0.85 | General Fairness |
 
 Weights are **domain-aware** — the composite score uses different emphasis depending on context:
@@ -105,20 +104,20 @@ Weights are **domain-aware** — the composite score uses different emphasis dep
 ## Architecture
 
 ```
-Flutter Web/Mobile App
-        │
-Firebase Hosting + Auth
-        │
-Cloud Run (FastAPI)  ──────►  Cloud Tasks Queue
-        │                            │
-        │                     Cloud Run Workers
-        │                       (Bias Engine)
-        │                            │
-Firebase Firestore ◄─────────────────┘
-Cloud Storage (datasets)
-        │
-Vertex AI / Gemini  (report generation)
-BigQuery            (audit analytics)
+Flutter Web / Mobile App (Firebase Hosting)
+          │
+    Firebase Auth
+          │
+  Cloud Run (FastAPI)  ──────►  Cloud Tasks Queue
+          │                            │
+          │                     Cloud Run Workers
+          │                       (Bias Engine)
+          │                            │
+  Firebase Firestore ◄─────────────────┘
+  Cloud Storage (datasets)
+          │
+  Vertex AI / Gemini  ──  Report generation
+  BigQuery            ──  Audit analytics
 ```
 
 ---
@@ -135,26 +134,25 @@ FairSight/
 │   │   ├── audit_screen.dart           Configure & launch bias audit
 │   │   ├── results_screen.dart         Metrics, charts, flags, mitigation
 │   │   ├── report_screen.dart          Gemini AI-generated audit report
-│   │   ├── auto_scan_screen.dart       Automatic bias detection
+│   │   ├── auto_scan_screen.dart       Automatic bias detection + heatmap
 │   │   └── external_audit_screen.dart  Model file & API endpoint audit
 │   └── services/
 │       ├── audit_service.dart          API + Firestore integration
 │       └── auth_service.dart           Firebase Auth wrapper
 │
 ├── backend/                          ← Python FastAPI backend
-│   ├── main.py                         REST API endpoints
+│   ├── main.py                         REST API (14 endpoints)
 │   ├── bias_engine.py                  Core fairness math (5 metrics, domain weights)
 │   ├── dataset_loader.py               4 real-world datasets + smart CSV upload
-│   ├── auto_scan.py                    Automatic column detection and bias scanning
+│   ├── auto_scan.py                    Automatic column detection & bias scanning
 │   ├── model_auditor.py                Secure model file + API endpoint auditing
 │   ├── report_generator.py             Gemini API integration + template fallback
-│   ├── gemma_analyzer.py               Gemini column classifier and bias interpreter
+│   ├── gemma_analyzer.py               Gemini column classifier & bias interpreter
 │   ├── tasks.py                        Async audit jobs
 │   ├── models.py                       SQLAlchemy ORM (SQLite / Postgres)
 │   ├── requirements.txt                Python dependencies
-│   ├── Dockerfile                      Cloud Run container
+│   ├── Dockerfile                      Cloud Run container definition
 │   └── tests/
-│       ├── __init__.py
 │       ├── test_bias_engine.py         68 unit tests (bias engine + dataset loader)
 │       └── test_api.py                 14 integration tests (all API endpoints)
 │
@@ -164,9 +162,10 @@ FairSight/
 │   └── submission_checklist.md
 │
 ├── scripts/
-│   ├── deploy_backend.sh               Cloud Run deploy
-│   └── deploy_frontend.sh              Firebase Hosting deploy
+│   ├── deploy_backend.sh               Cloud Run deploy script
+│   └── deploy_frontend.sh              Firebase Hosting deploy script
 │
+├── biased_dataset.csv                ← Sample dataset for auto-scan demo
 ├── pubspec.yaml                      ← Flutter project config
 ├── docker-compose.yml                ← Local dev environment
 ├── .env.example                      ← Environment variable template
@@ -180,8 +179,8 @@ FairSight/
 ### Prerequisites
 
 - Python 3.12+
-- Flutter 3.10+ (`flutter doctor`)
-- A Google API key (optional — fallback reports work without it)
+- Flutter 3.10+ (run `flutter doctor` to verify)
+- A Google API key *(optional — structured template reports work without it)*
 
 ### 1. Clone & configure
 
@@ -197,14 +196,14 @@ cp .env.example .env
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate        # Mac/Linux
+source venv/bin/activate        # macOS / Linux
 # venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
 python main.py
 ```
 
-Backend live at **http://localhost:8080/api/docs**
+Backend live at **http://localhost:8080/api/docs** (interactive Swagger UI)
 
 ### 3. Run the Flutter app
 
@@ -214,28 +213,11 @@ flutter pub get
 flutter run -d chrome
 ```
 
-App opens in Chrome. It will connect to your local backend automatically.
+The app opens in Chrome and connects to your local backend automatically.
 
 ---
 
 ## Running the Tests
-
-### Test file location
-
-The main test file belongs at:
-
-```
-backend/tests/test_bias_engine.py
-```
-
-The secondary API integration test file is at:
-
-```
-backend/tests/test_api.py
-```
-
-Both files must live inside `backend/tests/` alongside the `__init__.py` file
-so pytest can discover them as a package.
 
 ### Run all backend tests
 
@@ -250,59 +232,45 @@ Expected output:
 tests/test_bias_engine.py::TestOriginalMetrics::test_returns_full_audit_structure PASSED
 tests/test_bias_engine.py::TestOriginalMetrics::test_detects_bias_in_biased_dataset PASSED
 ...
-tests/test_bias_engine.py::TestDataQualityOutput::test_low_confidence_groups_flagged PASSED
 tests/test_api.py::TestHealth::test_health_returns_200 PASSED
 ...
 tests/test_api.py::TestMitigation::test_mitigate_after_audit PASSED
 
-82 passed in 12.4s
+82 passed in ~12s
 ```
 
-### Run only bias engine unit tests
+### Run targeted test suites
 
 ```bash
-cd backend
+# Bias engine unit tests only (68 tests)
 pytest tests/test_bias_engine.py -v
-# 68 passed
-```
 
-### Run only API integration tests
-
-```bash
-cd backend
+# API integration tests only (14 tests)
 pytest tests/test_api.py -v
-# 14 passed
+
+# Specific test class
+pytest tests/test_bias_engine.py::TestBaseRateAndContext -v   # Dataset composition scenario
+pytest tests/test_bias_engine.py::TestIndividualFairness -v   # KNN individual fairness
+pytest tests/test_bias_engine.py::TestMitigationEngineFixed -v # Mitigation engine
 ```
 
-### Run a specific test class
+### Test coverage breakdown
 
-```bash
-# Test the teammate's dataset composition scenario specifically
-pytest tests/test_bias_engine.py::TestBaseRateAndContext -v
-
-# Test individual fairness (KNN)
-pytest tests/test_bias_engine.py::TestIndividualFairness -v
-
-# Test the mitigation engine
-pytest tests/test_bias_engine.py::TestMitigationEngineFixed -v
-```
-
-### What the tests cover
-
-| Test Class | Tests | What it validates |
-|-----------|-------|-------------------|
+| Test Class | Tests | What It Validates |
+|---|---|---|
 | `TestOriginalMetrics` | 12 | Core DI, DP, EO, accuracy, flags, group metrics |
 | `TestIndividualFairness` | 6 | KNN consistency score, flag generation, weight inclusion |
 | `TestIntersectionalBias` | 4 | Multi-attribute intersection detection |
 | `TestMinimumSampleSize` | 4 | n<10 blocks audit, n<30 warns, n≥30 runs normally |
 | `TestDomainAwareScoring` | 5 | Hiring/healthcare/criminal justice weight differences |
-| `TestBaseRateAndContext` | 13 | Dataset composition vs model bias (teammate's scenario) |
+| `TestBaseRateAndContext` | 13 | Dataset composition vs model bias |
 | `TestEOExtremeBaseRate` | 2 | EO info flag for extreme base rate distributions |
 | `TestMitigationEngineFixed` | 8 | Regression-to-threshold, accuracy cost, strategy stacking |
 | `TestDatasetLoader` | 13 | Dataset generation, column detection, CSV upload safety |
-| `TestDataQualityOutput` | 3 | data_quality fields in audit result |
+| `TestDataQualityOutput` | 3 | `data_quality` fields in audit result |
+| `TestAPIIntegration` | 14 | All 14 REST endpoints, status codes, response schemas |
 
-### Flutter tests
+### Flutter widget tests
 
 ```bash
 # From project root
@@ -313,216 +281,66 @@ flutter test
 
 ## Manual Testing Guide
 
-Use these scenarios to manually verify the tool before the demo.
-
 ### Scenario 1 — Genuine bias (COMPAS)
 
-1. Open the app → click **Manual Audit**
-2. Select **COMPAS Recidivism** dataset
-3. Select sensitive attribute: `race`
-4. Click **Run Bias Audit**
+1. Open the app → **Manual Audit**
+2. Select **COMPAS Recidivism** dataset, attribute: `race`
+3. Click **Run Bias Audit**
 
-**Expected result:**
-- Fairness score: ~35–45/100
-- Risk level: Critical
-- Bias verdict: `BIASED`
-- Disparate Impact ~0.63 (fails)
-- Conditional DI also fails (genuine model discrimination)
-- Flags: Critical disparate impact, equalized odds violation
+**Expected:** Score ~35–45, Risk: Critical, Verdict: `BIASED`  
+Raw DI ~0.63 fails. Conditional DI also fails — genuine model discrimination.
+
+---
 
 ### Scenario 2 — Dataset composition, fair model (Adult Income)
 
-1. Open the app → click **Manual Audit**
-2. Select **Adult Income (UCI)** dataset
-3. Select sensitive attribute: `gender`
-4. Click **Run Bias Audit**
+1. Open the app → **Manual Audit**
+2. Select **Adult Income (UCI)** dataset, attribute: `gender`
+3. Click **Run Bias Audit**
 
-**Expected result:**
-- Bias verdict: `PROPORTIONAL`
-- Raw DI fails (different outcome rates)
-- Conditional DI passes (model is proportional to base rates)
-- Flag severity: `info` (not critical) — explains this is dataset composition
-- Recommendation: fix recruitment pipeline, not the model
+**Expected:** Verdict: `PROPORTIONAL`  
+Raw DI fails, Conditional DI passes. Recommendation: fix recruitment pipeline, not the model.
+
+---
 
 ### Scenario 3 — Auto-detect on your own CSV
 
-1. Open the app → click **Auto-Detect**
+1. Open the app → **Auto-Detect**
 2. Upload `biased_dataset.csv` (included in repo root)
-3. FairSight auto-detects columns with no configuration
+3. No configuration needed — FairSight detects columns automatically
 
-**Expected result:**
-- Sensitive attributes detected: `race`, `gender`
-- Per-attribute heatmap showing bias severity for each
-- Binarization warning for any continuous attributes split at median
+**Expected:** Sensitive attributes detected (`race`, `gender`), per-attribute heatmap, binarization warnings for continuous attributes.
+
+---
 
 ### Scenario 4 — Generate AI report
 
-After any audit completes:
+After any audit:
 1. Click **Generate AI Report** on the results screen
-2. With `GOOGLE_API_KEY` set: Gemini generates a context-aware report
-3. Without key: Structured template report shows all 5 metrics
+2. With `GOOGLE_API_KEY` set: Gemini generates a context-aware, plain-English report
+3. Without key: Structured template report with all 5 metrics
 
-**Verify the report includes:**
-- The `bias_verdict` prominently stated
-- Distinction between raw DI and conditional DI
-- Separate recommendations for model fixes vs upstream fixes
+**Verify:** Report states `bias_verdict` prominently, distinguishes raw DI vs conditional DI, and gives separate recommendations for model vs upstream fixes.
+
+---
 
 ### Scenario 5 — Mitigation projection
 
-After running the COMPAS audit:
-1. On Results screen, select strategies: `reweight` + `threshold`
+After the COMPAS audit:
+1. Select strategies: `reweight` + `threshold`
 2. Click **Apply Strategies**
 
-**Expected result:**
-- Projected score increases toward (but not past) 100
-- Disparate Impact shown improving toward 0.80 threshold
-- Accuracy cost shown (reweight ~1%, threshold ~3%)
+**Expected:** Projected score improvement toward threshold, accuracy cost shown per strategy (reweight ~1%, threshold ~3%).
+
+---
 
 ### Scenario 6 — Model file audit (security validated)
 
 1. Go to **Audit Model** → **Upload Model** tab
-2. Upload a `.pkl` model file + a test CSV
+2. Upload a `.pkl` sklearn model + a test CSV
 3. FairSight runs predictions and auto-scans for bias
 
-**Security note for demo:** Only joblib-serialized sklearn models are accepted.
-Try uploading a `.txt` file renamed to `.pkl` — it will be rejected with a clear error.
-
----
-
-## Demo Video Script (≤ 3 minutes)
-
-Use this script when recording your submission video.
-
-### 0:00–0:20 — Hook (Problem)
-
-> "AI is making life-changing decisions about who gets hired, who gets a loan, who gets
-> healthcare. But these systems can discriminate — invisibly and at scale. The COMPAS
-> algorithm falsely flagged Black defendants as future criminals at nearly twice the rate of
-> white defendants. FairSight was built to catch this — before deployment."
-
-**Show:** The FairSight home screen loading with the four dataset cards visible.
-
----
-
-### 0:20–0:45 — The Insight (Context-aware detection)
-
-> "Most fairness tools just compare outcome rates between groups. But that's not enough.
-> If 80% of job applicants are men and 80% get hired — that's not bias, that's math.
-> FairSight distinguishes between dataset composition and genuine model discrimination
-> using Conditional Disparate Impact."
-
-**Show:** The two-column comparison in the results screen — raw DI vs conditional DI.
-
----
-
-### 0:45–1:30 — Live Demo Part 1 (Genuine bias)
-
-> "Let's start with COMPAS. I'll select the dataset, choose race as the sensitive
-> attribute, and run the audit."
-
-**Do:** Run the COMPAS audit. Show the results loading.
-
-> "Fairness score: 38 out of 100. Risk: Critical. Bias verdict: BIASED.
-> The raw Disparate Impact is 0.63 — well below the EEOC threshold of 0.80.
-> And crucially, even after adjusting for each group's actual recidivism rate,
-> the Conditional DI still fails. This is genuine model discrimination."
-
-**Show:** The score hero card and metrics grid. Point to the flags section.
-
----
-
-### 1:30–1:50 — Live Demo Part 2 (Dataset composition)
-
-> "Now let's look at Adult Income. Same tool, different story."
-
-**Do:** Run the Adult Income audit with gender attribute.
-
-> "Raw DI fails — but the Conditional DI passes. The model is actually fair.
-> The outcome gap exists because women have different income rates in this dataset —
-> a dataset composition effect, not model bias. FairSight tells you: fix your
-> recruitment pipeline, not the model."
-
-**Show:** The `PROPORTIONAL` verdict and the info-severity flag.
-
----
-
-### 1:50–2:10 — Auto-scan
-
-> "You don't need to know which columns are sensitive. FairSight's Auto-Detect
-> scans the entire dataset automatically."
-
-**Do:** Upload `biased_dataset.csv` via Auto-Detect.
-
-**Show:** The bias heatmap appearing with per-attribute scores.
-
----
-
-### 2:10–2:30 — Mitigation
-
-> "Once bias is detected, FairSight shows you how to fix it — with projected
-> improvement before you apply anything."
-
-**Do:** On COMPAS results, select `reweight` + `threshold`, click Apply.
-
-> "Score projected to improve from 38 to 61. Disparate Impact moves from 0.63
-> toward the 0.80 threshold. Accuracy cost: 4%. You decide the trade-off."
-
-**Show:** The mitigation result card with projected score and accuracy cost.
-
----
-
-### 2:30–2:50 — AI Report + Google Stack
-
-> "Finally, one click generates a plain-English audit report via Google Gemini.
-> Not for data scientists — for executives, lawyers, and regulators."
-
-**Do:** Click Generate AI Report. Show the report loading.
-
-> "FairSight runs on Google Cloud Run, stores audit history in Firebase Firestore,
-> and uses Vertex AI for report generation. Flutter gives us a single codebase
-> for web and mobile."
-
-**Show:** The report screen. Then briefly show the Google tech stack slide or mention logos.
-
----
-
-### 2:50–3:00 — Close
-
-> "FairSight. AI bias is not inevitable. It is measurable, flaggable, and fixable."
-
-**Show:** Home screen with the tagline visible.
-
----
-
-## Deployment to Google Cloud
-
-### Deploy API to Cloud Run
-
-```bash
-# Option 1: Use the deployment script
-./scripts/deploy_backend.sh
-
-# Option 2: Manual
-cd backend
-gcloud builds submit --tag gcr.io/YOUR_PROJECT/fairsight-api
-gcloud run deploy fairsight-api \
-  --image gcr.io/YOUR_PROJECT/fairsight-api \
-  --platform managed \
-  --region asia-south1 \
-  --allow-unauthenticated \
-  --set-env-vars GOOGLE_API_KEY=your-key,ALLOWED_ORIGINS=https://fairsight-af293.web.app
-```
-
-### Deploy Flutter frontend to Firebase Hosting
-
-```bash
-# Option 1: Use the deployment script
-API_URL=https://your-cloud-run-url ./scripts/deploy_frontend.sh
-
-# Option 2: Manual
-flutter build web --dart-define="API_URL=https://your-cloud-run-url"
-firebase deploy --only hosting
-```
+**Security check:** Upload a `.txt` file renamed to `.pkl` — it will be rejected with a clear error. Only joblib-serialized sklearn models are accepted.
 
 ---
 
@@ -533,17 +351,17 @@ firebase deploy --only hosting
 | `GET` | `/api/health` | Health check |
 | `GET` | `/api/datasets` | List demo datasets |
 | `POST` | `/api/upload` | Upload custom CSV |
-| `POST` | `/api/audit-sync` | Run a bias audit (recommended) |
+| `POST` | `/api/audit-sync` | Run bias audit (synchronous, recommended) |
 | `POST` | `/api/audit` | Start audit async (background thread) |
 | `GET` | `/api/audit/{id}/status` | Poll async job status |
 | `GET` | `/api/audit/{id}/result` | Get async audit results |
 | `GET` | `/api/strategies` | List mitigation strategies |
-| `POST` | `/api/mitigate` | Apply mitigation and get projection |
+| `POST` | `/api/mitigate` | Apply mitigation and get projected improvement |
 | `POST` | `/api/report` | Generate Gemini AI report |
 | `POST` | `/api/auto-scan` | Auto-detect bias in uploaded CSV |
 | `POST` | `/api/auto-scan-dataset` | Auto-scan a built-in dataset |
-| `POST` | `/api/audit-model` | Upload model + test data for bias audit |
-| `POST` | `/api/audit-endpoint` | Audit external model API endpoint |
+| `POST` | `/api/audit-model` | Upload model file + test data for bias audit |
+| `POST` | `/api/audit-endpoint` | Audit an external model API endpoint |
 
 Full interactive docs: **http://localhost:8080/api/docs**
 
@@ -560,23 +378,53 @@ Full interactive docs: **http://localhost:8080/api/docs**
 
 ---
 
-## Test Results
+## Test Summary
 
 ```
-backend/tests/test_bias_engine.py  — 68 tests PASSED
-backend/tests/test_api.py          — 14 tests PASSED
-══════════════════════════════════════════════════
+backend/tests/test_bias_engine.py  —  68 tests  PASSED
+backend/tests/test_api.py          —  14 tests  PASSED
+══════════════════════════════════════════════════════
   82 passed in ~12s
 ```
 
-### Test coverage by component
-
 ```
-bias_engine.py     — 68 tests: DI, DP, EO, Individual Fairness, Intersectional,
-                               domain weights, base rate context, sample size,
-                               mitigation projection
-dataset_loader.py  — 13 tests: all 4 datasets, CSV column detection, security
-test_api.py        — 14 tests: health, datasets, audit, mitigation, strategies
+bias_engine.py     — DI, DP, EO, Individual Fairness, Intersectional bias,
+                     domain weights, base rate context, sample size guards,
+                     mitigation projection
+dataset_loader.py  — All 4 datasets, CSV column detection, upload security
+test_api.py        — Health, datasets, audit, mitigation, strategies, reports
+```
+
+---
+
+## Deployment
+
+### Deploy API to Cloud Run
+
+```bash
+# Option 1: Script
+./scripts/deploy_backend.sh
+
+# Option 2: Manual
+cd backend
+gcloud builds submit --tag gcr.io/YOUR_PROJECT/fairsight-api
+gcloud run deploy fairsight-api \
+  --image gcr.io/YOUR_PROJECT/fairsight-api \
+  --platform managed \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-env-vars GOOGLE_API_KEY=your-key,ALLOWED_ORIGINS=https://fairsight-af293.web.app
+```
+
+### Deploy Flutter frontend to Firebase Hosting
+
+```bash
+# Option 1: Script
+API_URL=https://your-cloud-run-url ./scripts/deploy_frontend.sh
+
+# Option 2: Manual
+flutter build web --dart-define="API_URL=https://your-cloud-run-url"
+firebase deploy --only hosting
 ```
 
 ---
@@ -584,40 +432,94 @@ test_api.py        — 14 tests: health, datasets, audit, mitigation, strategies
 ## Compliance Coverage
 
 | Framework | How FairSight Addresses It |
-|-----------|---------------------------|
-| **EU AI Act (2024)** | Fairness audit for high-risk AI systems; DP ≤ 5% threshold |
-| **EEOC Guidelines** | 4/5ths adverse impact rule (DI ≥ 0.80); conditional variant |
-| **Equal Credit Opportunity Act** | Fair lending bias detection (EO ≤ 10%) |
-| **India DPDP Act** | Data privacy — datasets processed locally, not stored externally |
+|---|---|
+| **EU AI Act (2024)** | Fairness audit for high-risk AI systems; Demographic Parity ≤ 5% threshold |
+| **EEOC Guidelines** | 4/5ths adverse impact rule (DI ≥ 0.80); conditional variant for context |
+| **Equal Credit Opportunity Act** | Fair lending bias detection (Equalized Odds ≤ 10%) |
+| **India DPDP Act** | Datasets processed locally, not stored externally |
 
 ---
 
 ## Security
 
-| Concern | Fix Applied |
-|---------|-------------|
+| Concern | Control Applied |
+|---|---|
 | `pickle.loads()` RCE | Removed entirely — joblib only, with sklearn namespace validation |
 | CORS misconfiguration | `allow_origins` set to explicit domain list via `ALLOWED_ORIGINS` env var |
-| Model file size | 50MB hard limit before deserialization |
+| Oversized model files | 50 MB hard limit enforced before deserialization |
 | Untrusted file extensions | Whitelist: `.pkl`, `.joblib` only |
-| Identifier columns as sensitive attrs | `name`, `id`, `email`, `phone` excluded from auto-detection |
+| PII columns as sensitive attrs | `name`, `id`, `email`, `phone` excluded from auto-detection |
 
 ---
 
 ## Challenges Overcome
 
-| Challenge | How We Solved It |
-|-----------|-----------------|
-| **Dataset composition vs model bias** | Conditional Disparate Impact compares prediction rate to each group's actual qualification rate — not just to other groups |
+| Challenge | Solution |
+|---|---|
+| **Dataset composition vs model bias** | Conditional Disparate Impact compares each group's prediction rate to its own qualification rate — not just to other groups |
 | **Multiple conflicting fairness definitions** | 5 metrics with domain-aware weighted composite score; UI explains which metric applies in which legal context |
 | **Making ML fairness accessible** | Gemini-powered plain-English reports replace statistical jargon with actionable recommendations |
-| **Intersectional bias invisible to single-attribute audits** | `intersectional_bias()` method detects disparities at group intersections (e.g. Black women vs white men) |
-| **Real-time audit performance** | Synchronous `/api/audit-sync` endpoint for reliable single-request audits in Cloud Run |
-| **No single "right" mitigation** | Projected improvement uses regression-to-threshold logic with per-strategy accuracy cost |
+| **Intersectional bias invisible to single-attribute audits** | `intersectional_bias()` detects disparities at group intersections (e.g. Black women vs white men) |
+| **Real-time audit performance on Cloud Run** | Synchronous `/api/audit-sync` endpoint for reliable single-request audits without polling |
+| **No single "right" mitigation** | Projected improvement uses regression-to-threshold logic with per-strategy accuracy cost, letting users choose the trade-off |
 
 ---
 
+## Demo Video Script (≤ 3 minutes)
 
+### 0:00–0:20 — Hook
+
+> *"AI is making life-changing decisions about who gets hired, who gets a loan, who gets
+> healthcare. But these systems can discriminate — invisibly and at scale. The COMPAS
+> algorithm falsely flagged Black defendants as future criminals at nearly twice the rate of
+> white defendants. FairSight was built to catch this — before deployment."*
+
+**Show:** FairSight home screen with the four dataset cards.
+
+### 0:20–0:45 — The Insight
+
+> *"Most tools just compare outcome rates. But if 80% of applicants are men and 80% get
+> hired — that's not bias, that's math. FairSight uses Conditional Disparate Impact to
+> distinguish dataset composition from genuine model discrimination."*
+
+**Show:** Two-column results: raw DI vs conditional DI.
+
+### 0:45–1:30 — Live Demo: Genuine Bias (COMPAS)
+
+> *"COMPAS. Race as the sensitive attribute. Score: 38/100, Risk: Critical, Verdict: BIASED.
+> Raw DI is 0.63 — below the EEOC threshold. Conditional DI also fails. Genuine model discrimination."*
+
+**Show:** Score hero card, metrics grid, flags section.
+
+### 1:30–1:50 — Live Demo: Dataset Composition (Adult Income)
+
+> *"Same tool, different story. Adult Income, gender. Raw DI fails — but Conditional DI passes.
+> The model is fair. The gap is in the data. Fix recruitment, not the model."*
+
+**Show:** `PROPORTIONAL` verdict, info-severity flag.
+
+### 1:50–2:10 — Auto-Scan
+
+> *"You don't need to know which columns are sensitive. Upload any CSV and FairSight finds them."*
+
+**Do:** Upload `biased_dataset.csv`. **Show:** Bias heatmap.
+
+### 2:10–2:30 — Mitigation
+
+> *"Once bias is found, FairSight shows how to fix it — with projected improvement before you commit."*
+
+**Do:** Select `reweight` + `threshold`. **Show:** Score projection, accuracy cost.
+
+### 2:30–2:50 — AI Report & Stack
+
+> *"One click generates a plain-English audit report via Google Gemini — for executives and regulators.
+> Running on Cloud Run, Firestore, Vertex AI, and Flutter."*
+
+**Show:** Report screen, then tech stack.
+
+### 2:50–3:00 — Close
+
+> *"FairSight. AI bias is not inevitable. It is measurable, flaggable, and fixable."*
 
 ---
 
@@ -625,4 +527,4 @@ test_api.py        — 14 tests: health, datasets, audit, mitigation, strategies
 
 MIT License — free to use, modify, and deploy.
 
-IP remains with the team as per Solution Challenge 2026 terms.
+IP remains with the team as per Solution Challenge 2026 India terms.
