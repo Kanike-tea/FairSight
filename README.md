@@ -371,7 +371,6 @@ API_URL=https://your-cloud-run-url ./scripts/deploy_frontend.sh
 flutter build web --dart-define="API_URL=https://your-cloud-run-url"
 firebase deploy --only hosting
 ```
->>>>>>> 9a94a5e6ab19a0bdcd61a5cfb80d610316bad3a8
 
 ---
 
