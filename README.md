@@ -340,7 +340,44 @@ After the COMPAS audit:
 2. Upload a `.pkl` sklearn model + a test CSV
 3. FairSight runs predictions and auto-scans for bias
 
+<<<<<<< HEAD
 **Security check:** Upload a `.txt` file renamed to `.pkl` — it will be rejected with a clear error. Only joblib-serialized sklearn models are accepted.
+=======
+**Security note for demo:** Only joblib-serialized sklearn models are accepted.
+Try uploading a `.txt` file renamed to `.pkl` — it will be rejected with a clear error.
+
+---
+
+## Deployment to Google Cloud
+
+### Deploy API to Cloud Run
+
+```bash
+# Option 1: Use the deployment script
+./scripts/deploy_backend.sh
+
+# Option 2: Manual
+cd backend
+gcloud builds submit --tag gcr.io/YOUR_PROJECT/fairsight-api
+gcloud run deploy fairsight-api \
+  --image gcr.io/YOUR_PROJECT/fairsight-api \
+  --platform managed \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-env-vars GOOGLE_API_KEY=your-key,ALLOWED_ORIGINS=https://fairsight-af293.web.app
+```
+
+### Deploy Flutter frontend to Firebase Hosting
+
+```bash
+# Option 1: Use the deployment script
+API_URL=https://your-cloud-run-url ./scripts/deploy_frontend.sh
+
+# Option 2: Manual
+flutter build web --dart-define="API_URL=https://your-cloud-run-url"
+firebase deploy --only hosting
+```
+>>>>>>> 9a94a5e6ab19a0bdcd61a5cfb80d610316bad3a8
 
 ---
 
